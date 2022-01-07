@@ -66,7 +66,6 @@ def data_processing(data):
     labels = []
     
     for batch in data:
-        # batch[0].shape = (1, audio_len) tensor
         waveforms.append(batch[0].squeeze(0)) #after squeeze => (audio_len) tensor # remove batch dim
         # batch[2] = string
         # str2int = dict
