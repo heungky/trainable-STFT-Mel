@@ -3,9 +3,11 @@ import argparse
 speechcommand_arg = argparse.ArgumentParser(description='User choose GPU or CPU')
 
 speechcommand_arg.add_argument('--device', type=str, help='choose either GPU or CPU')
+speechcommand_arg.add_argument('--output_chan', type=int, help='Number of output channel')
 
 
 device = speechcommand_arg.parse_args().device
+no_output_chan = speechcommand_arg.parse_args().output_chan
 
 ##speechcommands cnn
 
@@ -124,8 +126,8 @@ import torch.nn.functional as F
 class Net(nn.Module):
     def __init__(self):
         super().__init__()
-        self.conv1 = nn.Conv2d(1,6,5)    
-        self.conv2 = nn.Conv2d(6,16,5)
+        self.conv1 = nn.Conv2d(1,no_output_chan,5)    
+        self.conv2 = nn.Conv2d(no_output_chan,16,5)
         self.fc1 = nn.Linear(16*22*5,120) 
         #have to follow input, x.shape before flattern: 
         self.fc2 = nn.Linear(120,84)
