@@ -1,3 +1,6 @@
 MNIST/
 .ipynb_checkpoints/
 __pycache__/
+speech_commands_v0.02.tar.gz
+SpeechCommands/
+

@@ -1,14 +1,4 @@
 import argparse 
-
-speechcommand_arg = argparse.ArgumentParser(description='User choose GPU or CPU')
-
-speechcommand_arg.add_argument('--device', type=str, help='choose either GPU or CPU')
-speechcommand_arg.add_argument('--output_chan', type=int, help='Number of output channel')
-
-
-device = speechcommand_arg.parse_args().device
-no_output_chan = speechcommand_arg.parse_args().output_chan
-
 ##speechcommands cnn
 
 import torch
@@ -21,72 +11,19 @@ from torch.nn.utils.rnn import pad_sequence
 from nnAudio.features.mel import MelSpectrogram
 import matplotlib.pyplot as plt
 from IPython.display import Audio
-
-str2int = \
-{'backward': 0,
- 'bed': 1,
- 'bird': 2,
- 'cat': 3,
- 'dog': 4,
- 'down': 5,
- 'eight': 6,
- 'five': 7,
- 'follow': 8,
- 'forward': 9,
- 'four': 10,
- 'go': 11,
- 'happy': 12,
- 'house': 13,
- 'learn': 14,
- 'left': 15,
- 'marvin': 16,
- 'nine': 17,
- 'no': 18,
- 'off': 19,
- 'on': 20,
- 'one': 21,
- 'right': 22,
- 'seven': 23,
- 'sheila': 24,
- 'six': 25,
- 'stop': 26,
- 'three': 27,
- 'tree': 28,
- 'two': 29,
- 'up': 30,
- 'visual': 31,
- 'wow': 32,
- 'yes': 33,
- 'zero': 34
-}
-
-#create dict from dataset_label to int
+from models.ModelA import ModelA
+from dataloading_util import data_processing
 
 
-def data_processing(data):
-    waveforms = []
-    labels = []
-    
-    for batch in data:
-        waveforms.append(batch[0].squeeze(0)) #after squeeze => (audio_len) tensor # remove batch dim
-        # batch[2] = string
-        # str2int = dict
-        # str2int[batch[2]] = int
-        #torch.Tensor([str2int[batch[2]]]) = tensor
-        label = torch.Tensor([str2int[batch[2]]]) # batch[2] is the label key #str --> int --> tensor
-        ## print(f"{label=}")
-        labels.append(label)
-        
-    
-        
-    waveform_padded = nn.utils.rnn.pad_sequence(waveforms, batch_first=True)  
-    labels = nn.utils.rnn.pad_sequence(labels, batch_first=True)
+speechcommand_arg = argparse.ArgumentParser(description='User choose GPU or CPU')
 
-    
-    output_batch = {'waveforms': waveform_padded, 
-             'labels': labels,
-             }
-    return output_batch
+speechcommand_arg.add_argument('--device', type=str, help='choose either GPU or CPU')
+speechcommand_arg.add_argument('--output_chan', type=int, help='Number of output channel')
+
+
+device = speechcommand_arg.parse_args().device
+no_output_chan = speechcommand_arg.parse_args().output_chan
+
 
 mel_layer = MelSpectrogram(sr=16000, 
                            n_fft=2048,
@@ -121,31 +58,8 @@ testloader = torch.utils.data.DataLoader(testset,
                               collate_fn=lambda x: data_processing(x))
 
 
-import torch.nn as nn
-import torch.nn.functional as F
-class Net(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.conv1 = nn.Conv2d(1,no_output_chan,5)    
-        self.conv2 = nn.Conv2d(no_output_chan,16,5)
-        self.fc1 = nn.Linear(16*22*5,120) 
-        #have to follow input, x.shape before flattern: 
-        self.fc2 = nn.Linear(120,84)
-        self.fc3 = nn.Linear(84,35)
-        
-    def forward(self,x):
-        #print(f"{x.shape=}")
-        x = F.max_pool2d(F.relu(self.conv1(x)), (2, 2))
-        x = F.max_pool2d(F.relu(self.conv2(x)),2)
-      
-        x = torch.flatten(x,1)
-    
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = self.fc3(x)
-        return x
 
-net = Net()
+net = ModelA(no_output_chan)
 net = net.to(device)
 import torch.optim as optim
 
