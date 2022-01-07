@@ -11,18 +11,20 @@ from torch.nn.utils.rnn import pad_sequence
 from nnAudio.features.mel import MelSpectrogram
 import matplotlib.pyplot as plt
 from IPython.display import Audio
-from models.ModelA import ModelA
 from dataloading_util import data_processing
+import models as Model 
 
 
 speechcommand_arg = argparse.ArgumentParser(description='User choose GPU or CPU')
 
 speechcommand_arg.add_argument('--device', type=str, help='choose either GPU or CPU')
 speechcommand_arg.add_argument('--output_chan', type=int, help='Number of output channel')
+speechcommand_arg.add_argument('--model_type', type=str, help='choose model type')
 
 
 device = speechcommand_arg.parse_args().device
 no_output_chan = speechcommand_arg.parse_args().output_chan
+model_type = speechcommand_arg.parse_args().model_type
 
 
 mel_layer = MelSpectrogram(sr=16000, 
@@ -59,7 +61,7 @@ testloader = torch.utils.data.DataLoader(testset,
 
 
 
-net = ModelA(no_output_chan)
+net = getattr(Model, model_type)(no_output_chan)
 net = net.to(device)
 import torch.optim as optim
 
