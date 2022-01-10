@@ -85,7 +85,8 @@ now = datetime.now()
 logger = TensorBoardLogger(save_dir=".", version=1, name=f'output/{now.strftime("%d-%m-%Y-%H-%M-%S")}')
 
 
-trainer = Trainer(gpus=device, max_epochs=max_epochs,logger=logger, check_val_every_n_epoch=1)
+trainer = Trainer(gpus=device, max_epochs=max_epochs,logger=logger, check_val_every_n_epoch=1, num_sanity_val_steps=5)
+
 trainer.fit(net, trainloader, validloader)
 #added validloader, in order to reach validation_step
 
