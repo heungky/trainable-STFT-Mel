@@ -78,7 +78,7 @@ def my_app(cfg : DictConfig) -> None:
             #optimizer.step()
 
     now = datetime.now()        
-    logger = TensorBoardLogger(save_dir=".", version=1, name=f'output/{now.strftime("%d-%m-%Y-%H-%M-%S")}')
+    logger = TensorBoardLogger(save_dir=".", version=1, name=f'{cfg.model_type}-bz={cfg.batch_size}')
 
 
     trainer = Trainer(**cfg.trainer, logger = logger)
