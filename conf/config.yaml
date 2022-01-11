@@ -1,0 +1,58 @@
+batch_size: 8
+model_type: 'ModelA'
+no_output_chan: 10
+gpus: 1
+max_epochs: 5
+check_val_every_n_epoch: 1
+num_sanity_val_steps: 5
+
+
+dataset:
+    train:
+        root: '/workspace/projectA'
+        url: 'speech_commands_v0.02'
+        folder_in_archive: 'SpeechCommands'
+        download: False
+        subset: 'training'        
+    val:
+        root: '/workspace/projectA'
+        url: 'speech_commands_v0.02'
+        folder_in_archive: 'SpeechCommands'
+        download: False
+        subset: 'validation'      
+    test:
+        root: '/workspace/projectA'
+        url: 'speech_commands_v0.02'
+        folder_in_archive: 'SpeechCommands'
+        download: False
+        subset: 'testing'  
+
+
+dataloader:
+       train: 
+           batch_size: ${batch_size}
+           shuffle: True
+       val:
+           batch_size: ${batch_size}
+           
+       test:
+           batch_size: ${batch_size}
+       
+       
+       
+       
+trainer:
+    gpus: ${gpus}
+    max_epochs: ${max_epochs}
+    check_val_every_n_epoch: ${check_val_every_n_epoch}
+    num_sanity_val_steps: ${num_sanity_val_steps}
+    
+    
+    
+    
+    #a: ${dataset.train.download}
+    
+    
+    
+    
+    
