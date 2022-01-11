@@ -1,11 +1,16 @@
 batch_size: 8
-model_type: 'ModelA'
+# model_type: 'ModelA'
 no_output_chan: 10
 gpus: 1
 max_epochs: 5
 check_val_every_n_epoch: 1
 num_sanity_val_steps: 5
 
+defaults:
+    - model: ModelA
+
+#for calling model.ModelA file
+#python speechcommand_hydra.py model=ModelB
 
 dataset:
     train:
@@ -50,7 +55,7 @@ trainer:
     
     
     
-    #a: ${dataset.train.download}
+    
     
     
     

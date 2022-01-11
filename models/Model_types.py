@@ -61,7 +61,7 @@ class SpeechCommand(LightningModule):
         pred = torch.cat(pred, 0)
         acc = sum(pred.argmax(-1) == label)/label.shape[0]
         self.log('Validation/acc', acc, on_step=False, on_epoch=True)    
-#output_dict        
+    #use the return value from validation_step: output_dict , to calculate the overall accuracy   #epoch wise 
         
         
         
@@ -74,7 +74,7 @@ class SpeechCommand(LightningModule):
         plt.tight_layout()
         self.logger.experiment.add_figure(f"{key}", fig, global_step=self.current_epoch)
         plt.close(fig)
-#plot images in TensorBoard        
+    #plot images in TensorBoard        
           
     
     
@@ -82,26 +82,12 @@ class SpeechCommand(LightningModule):
         return optim.Adam(self.parameters(), lr=0.001)    
     
 
+#python Inheritance
 class ModelA(SpeechCommand):
-    def __init__(self, no_output_chan):
+    def __init__(self, no_output_chan, cfg_spec):
         super().__init__()
         print(f"I am model A")   
-        self.mel_layer = MelSpectrogram(sr=16000, 
-                                   n_fft=2048,
-                                   win_length=None,
-                                   n_mels=100, 
-                                   hop_length=512,
-                                   window='hann',
-                                   center=True,
-                                   pad_mode='reflect',
-                                   power=2.0,
-                                   htk=False,
-                                   fmin=0.0,
-                                   fmax=None,
-                                   norm=1,
-                                   trainable_mel=False,
-                                   trainable_STFT=False,
-                                   verbose=True,)        
+        self.mel_layer = MelSpectrogram(**cfg_spec)        
         
         self.conv1 = nn.Conv2d(1,no_output_chan,5)    
         self.conv2 = nn.Conv2d(no_output_chan,16,5)
@@ -136,25 +122,10 @@ class ModelA(SpeechCommand):
     
     
 class ModelB(SpeechCommand):    
-    def __init__(self, no_output_chan):
+    def __init__(self, no_output_chan,cfg_spec):
         super().__init__()
         print(f"I am model B")
-        self.mel_layer = MelSpectrogram(sr=16000, 
-                                   n_fft=2048,
-                                   win_length=None,
-                                   n_mels=100, 
-                                   hop_length=512,
-                                   window='hann',
-                                   center=True,
-                                   pad_mode='reflect',
-                                   power=2.0,
-                                   htk=False,
-                                   fmin=0.0,
-                                   fmax=None,
-                                   norm=1,
-                                   trainable_mel=False,
-                                   trainable_STFT=False,
-                                   verbose=True,)           
+        self.mel_layer = MelSpectrogram(**cfg_spec)           
         self.conv1 = nn.Conv2d(1,no_output_chan,5)    
         self.conv2 = nn.Conv2d(no_output_chan,16,5)
         

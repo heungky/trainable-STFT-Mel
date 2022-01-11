@@ -19,12 +19,8 @@ from datetime import datetime
 
 
 @hydra.main(config_path="conf", config_name="config")
-def my_app(cfg : DictConfig) -> None:
-    print(OmegaConf.to_yaml(cfg))
-    print(f"{(cfg.model_type)}")
-
-
-
+def cnn(cfg : DictConfig) -> None:
+#     print(OmegaConf.to_yaml(cfg))
 
     batch_size = cfg.batch_size
 
@@ -51,8 +47,7 @@ def my_app(cfg : DictConfig) -> None:
 
     #for dataloader, trainset need shuffle
 
-    #***********
-    net = getattr(Model, cfg.model_type)(cfg.no_output_chan)
+    net = getattr(Model, cfg.model.model_type)(cfg.no_output_chan, cfg.model.spec_args)
     # net = net.to(gpus)
     print(type(net))
 
@@ -77,8 +72,8 @@ def my_app(cfg : DictConfig) -> None:
             #loss.backward()
             #optimizer.step()
 
-    now = datetime.now()        
-    logger = TensorBoardLogger(save_dir=".", version=1, name=f'{cfg.model_type}-bz={cfg.batch_size}')
+    #now = datetime.now()        
+    logger = TensorBoardLogger(save_dir=".", version=1, name=f'{cfg.model.model_type}-bz={cfg.batch_size}')
 
 
     trainer = Trainer(**cfg.trainer, logger = logger)
@@ -88,7 +83,7 @@ def my_app(cfg : DictConfig) -> None:
 
 
 if __name__ == "__main__":
-    my_app()
+    cnn()
 
 
 
