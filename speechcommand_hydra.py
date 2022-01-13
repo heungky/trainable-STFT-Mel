@@ -17,6 +17,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
 from datetime import datetime
 from torch import Tensor
+from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 
 
 @hydra.main(config_path="conf", config_name="config")
@@ -75,9 +76,14 @@ def cnn(cfg : DictConfig) -> None:
 
     #now = datetime.now()        
     logger = TensorBoardLogger(save_dir=".", version=1, name=f'{cfg.model.model_type}-bz={cfg.batch_size}')
+    
+    lr_monitor = LearningRateMonitor(logging_interval='epoch')
+    checkpoint_callback = ModelCheckpoint(**cfg.checkpoint,
+                                          auto_insert_metric_name=False) #save checkpoint
+    
+    callbacks = [checkpoint_callback, lr_monitor]
 
-
-    trainer = Trainer(**cfg.trainer, logger = logger)
+    trainer = Trainer(**cfg.trainer, logger = logger, callbacks=callbacks)
 
     trainer.fit(net, trainloader, validloader)
     #added validloader, in order to reach validation_step

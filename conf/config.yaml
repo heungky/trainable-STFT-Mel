@@ -1,7 +1,7 @@
 batch_size: 100
 # model_type: 'ModelA'
 no_output_chan: 10
-gpus: 1
+gpus: 1  #[1] = GPU 1 
 max_epochs: 200
 check_val_every_n_epoch: 1
 num_sanity_val_steps: 5
@@ -53,7 +53,13 @@ trainer:
     num_sanity_val_steps: ${num_sanity_val_steps}
     
     
-    
+checkpoint:
+  monitor: 'Validation/Loss'
+  filename: "e={epoch:02d}-valid_loss={Validation/Loss:.2f}-valid_acc={Validation/acc:.2f}"
+  save_top_k: 1
+  mode: 'min'
+  save_last: True
+  every_n_epochs: ${trainer.check_val_every_n_epoch}      
     
     
     
