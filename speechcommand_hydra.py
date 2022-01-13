@@ -16,6 +16,7 @@ import models as Model
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
 from datetime import datetime
+from torch import Tensor
 
 
 @hydra.main(config_path="conf", config_name="config")

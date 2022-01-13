@@ -1,1 +1,1 @@
-from .Model_types import ModelA, ModelB
+from .Model_types import ModelA, ModelB, BCResNet
