@@ -102,7 +102,7 @@ class ModelA(SpeechCommand):
         
     def forward(self,x):
         spec = self.mel_layer(x) #will take batch['waveforms' in training_step
-        spec = torch.log(spec+1e-10) #3-dimension
+        spec = torch.log(spec+1e-10) #3-dimension #take log to make data more comparable 
         x = spec.unsqueeze(1)    #4-dimension     
         
         x = F.max_pool2d(F.relu(self.conv1(x)), (2, 2))
@@ -306,6 +306,7 @@ class BCResNet(SpeechCommand):
         # x [B,16000]
         
         spec = self.mel_layer(x) # [B,F,T]
+        spec = torch.log(spec+1e-10)
         spec = spec.unsqueeze(1)
 #x is training_step_batch['waveforms' [B,16000]
 #after self.mel_layer(x) --> 3D [B,F,T]
