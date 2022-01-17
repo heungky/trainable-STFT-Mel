@@ -75,9 +75,9 @@ def cnn(cfg : DictConfig) -> None:
             #optimizer.step()
 
     #now = datetime.now()        
-    logger = TensorBoardLogger(save_dir=".", version=1, name=f'{cfg.model.model_type}-bz={cfg.batch_size}')
+    logger = TensorBoardLogger(save_dir=".", version=1, name=f'SGD-{cfg.model.model_type}-bz={cfg.batch_size}')
     
-    lr_monitor = LearningRateMonitor(logging_interval='epoch')
+    lr_monitor = LearningRateMonitor(logging_interval='step')
     checkpoint_callback = ModelCheckpoint(**cfg.checkpoint,
                                           auto_insert_metric_name=False) #save checkpoint
     

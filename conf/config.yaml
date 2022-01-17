@@ -3,13 +3,13 @@ batch_size: 100
 no_output_chan: 10
 gpus: 1  #[1] = GPU 1 
 max_epochs: 200
-check_val_every_n_epoch: 1
+check_val_every_n_epoch: 2
 num_sanity_val_steps: 5
 
 defaults:
     - model: BC_ResNet
 
-#for calling model.ModelA file
+#for calling model.BC_ResNetA file
 #python speechcommand_hydra.py model=ModelB
 
 dataset:
@@ -56,10 +56,11 @@ trainer:
 checkpoint:
   monitor: 'Validation/Loss'
   filename: "e={epoch:02d}-valid_loss={Validation/Loss:.2f}-valid_acc={Validation/acc:.2f}"
-  save_top_k: 1
-  mode: 'min'
-  save_last: True
+  save_top_k: 1   #only save the one whatever the minimum 
+  mode: 'min'     #if validation/acc, then will monitor 'max'
+  save_last: True #save the last point 
   every_n_epochs: ${trainer.check_val_every_n_epoch}      
+  #current case is monitor validation/loss, so need to set check_val_every_n_epoch. no need to set if monitor train/loss
     
     
     

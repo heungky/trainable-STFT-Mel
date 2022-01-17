@@ -13,6 +13,7 @@ spec_args:
     fmin: 0.0
     fmax: null
     norm: 1
-    trainable_mel: False
+    trainable_mel: True
     trainable_STFT: False
     verbose: True
+#nnAudio feature: trainable_mel =  True 

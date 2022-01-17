@@ -7,12 +7,15 @@ from nnAudio.features.mel import MelSpectrogram
 import sys
 import matplotlib.pyplot as plt
 from torch import Tensor
+from torch.optim.lr_scheduler import LambdaLR
+from cosine_annealing_warmup import CosineAnnealingWarmupRestarts
+
 
 class SpeechCommand(LightningModule):
     def training_step(self, batch, batch_idx):
         outputs, spec = self(batch['waveforms']) 
         loss = self.criterion(outputs, batch['labels'].squeeze(1).long())
-#return outputs for calculate loss, return spec for visual
+#return outputs (2D) for calculate loss, return spec (3D) for visual
 #for debug 
 #torch.save(outputs, 'output.pt')
 #torch.save(batch['labels'], 'label.pt')          
@@ -21,9 +24,9 @@ class SpeechCommand(LightningModule):
         acc = sum(outputs.argmax(-1) == batch['labels'].squeeze(1))/outputs.shape[0] #batch wise
         
         self.log('Train/acc', acc, on_step=False, on_epoch=True)
-        if self.current_epoch==0:
-            if batch_idx == 0:
-                self.log_images(spec, 'Train/Spec')        
+        #if self.current_epoch==0:
+        if batch_idx == 0:
+            self.log_images(spec, 'Train/Spec')        
         self.log('Train/Loss', loss, on_step=False, on_epoch=True)
         return loss
         #log(graph title, take acc as data, on_step: plot every step, on_epch: plot every epoch)
@@ -31,27 +34,32 @@ class SpeechCommand(LightningModule):
     
          
     
-    def validation_step(self, batch, batch_idx):       
+    def validation_step(self, batch, batch_idx):               
         outputs, spec = self(batch['waveforms'])
         loss = self.criterion(outputs, batch['labels'].squeeze(1).long())
-        
+#        
 #acc = sum(outputs.argmax(-1) == batch['labels'].squeeze(1))/outputs.shape[0]
 #accuracy for 
 #self.log('Validation/acc', acc, on_step=False, on_epoch=True)
 
         self.log('Validation/Loss', loss, on_step=False, on_epoch=True)          
-        if self.current_epoch==0:
-            if batch_idx == 0:
-                self.log_images(spec, 'Validation/Spec')
-        #plot log_images for 1st epoch_1st batch
+        #if self.current_epoch==0:
+        if batch_idx == 0:
+            fig, ax = plt.subplots(1,1) 
+            mel_filter_banks = self.mel_layer.mel_basis
+            for i in mel_filter_banks:
+                ax.plot(i.cpu())
+
+            self.logger.experiment.add_figure('Validation/MelFilterBanks', fig, global_step=self.current_epoch)
+            
+            self.log_images(spec, 'Validation/Spec')
+            #plot log_images for 1st epoch_1st batch
         
         output_dict = {'outputs': outputs,
                        'labels': batch['labels'].squeeze(1)}        
         return output_dict
-        
-        
-                
-        
+
+    
     def validation_epoch_end(self, outputs):
         pred = []
         label = []
@@ -63,10 +71,7 @@ class SpeechCommand(LightningModule):
         acc = sum(pred.argmax(-1) == label)/label.shape[0]
         self.log('Validation/acc', acc, on_step=False, on_epoch=True)    
     #use the return value from validation_step: output_dict , to calculate the overall accuracy   #epoch wise 
-        
-        
-        
-        
+                              
         
     def log_images(self, tensors, key):
         fig, axes = plt.subplots(2,2, figsize=(12,5), dpi=100)
@@ -80,7 +85,34 @@ class SpeechCommand(LightningModule):
     
     
     def configure_optimizers(self):
-        return optim.Adam(self.parameters(), lr=0.001)    
+        optimizer = optim.SGD(self.parameters(),lr=1e-3, momentum=0.9,weight_decay =0.001)
+       
+        
+#        def step_function(step):
+#            if step< 848*5:
+#                return step*100/(848*5)
+#            else:
+#                return 100
+                
+#        scheduler1 = {
+#            'scheduler': LambdaLR(optimizer, lr_lambda= step_function),
+#            'interval': 'step',
+#            'frequency': 1,
+#       }
+        
+        scheduler2 = {
+            'scheduler': CosineAnnealingWarmupRestarts(optimizer, first_cycle_steps=5000, cycle_mult=1.0, max_lr=0.1, min_lr=0.001, warmup_steps=848*5, gamma=0.5) ,
+            'interval': 'step',
+            'frequency': 1,}                
+        #for learning rate schedular 
+        #warmup_steps set to 5 epochs, gamma value refer to decay %
+        #if interval = step, refer to each feedforward step
+        
+        return [optimizer] , [scheduler2]
+        #return 2 lists
+        #if use constant learning rate: no cosineannealing --> exclude out the scheduler2 return
+        
+    
     
 
 #python Inheritance
@@ -155,9 +187,7 @@ class ModelB(SpeechCommand):
     
     
     
-    
-    
-    
+#start of BCResNet        
 class SubSpectralNorm(LightningModule):
     def __init__(self, C, S, eps=1e-5):
         super(SubSpectralNorm, self).__init__()
@@ -276,7 +306,8 @@ class TransitionBlock(LightningModule):
 
 
 class BCResNet(SpeechCommand):
-    def __init__(self, no_output_chan, cfg_spec):
+    def __init__(self, no_output_chan, cfg_spec): 
+        #in main script, will pass no_output_chan, cfg_spec to model
         super().__init__()
         self.conv1 = nn.Conv2d(1, 16, 5, stride=(2, 1), padding=(2, 2))
         self.block1_1 = TransitionBlock(16, 8)
@@ -302,10 +333,18 @@ class BCResNet(SpeechCommand):
         self.mel_layer = MelSpectrogram(**cfg_spec)
         self.criterion = nn.CrossEntropyLoss()
         
+        #self.mel_layer use in validation step for [mel_filter_banks = self.mel_layer.mel_basis]
+        #self.criterion use in traning & validation step
+        
     def forward(self, x):        
-        # x [B,16000]
+        # x [Batch_size,16000]
         
         spec = self.mel_layer(x) # [B,F,T]
+        #print(f'{spec.max()=}')
+        #print(f'{spec.min()=}')
+        
+        spec = torch.relu(spec)
+        
         spec = torch.log(spec+1e-10)
         spec = spec.unsqueeze(1)
 #x is training_step_batch['waveforms' [B,16000]
@@ -343,12 +382,13 @@ class BCResNet(SpeechCommand):
         out = out.mean(-1, keepdim=True)
 
 #        print('Conv4 INPUT SHAPE:', out.shape)
-        out = self.conv4(out)
-        out = out.squeeze(2).squeeze(2)
+        out = self.conv4(out)   #4D
+        out = out.squeeze(2).squeeze(2)  #2D
         spec = spec.squeeze(1)
 
 #        print('OUTPUT SHAPE:', out.shape)
 #        OUTPUT SHAPE: torch.Size([8, 35, 1, 1])  out
+
 #crossentropy expect[B, C], so need to squeeze to be 2 dimension
 #ref:https://pytorch.org/docs/1.9.1/generated/torch.nn.CrossEntropyLoss.html
 #old spec :4D [B,1,F,T] , the return spec is for plot log_images, so need 3D
