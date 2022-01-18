@@ -7,7 +7,7 @@ check_val_every_n_epoch: 2
 num_sanity_val_steps: 5
 
 defaults:
-    - model: BC_ResNet
+    - model: BC_ResNet_Fastaudio
 
 #for calling model.BC_ResNetA file
 #python speechcommand_hydra.py model=ModelB

@@ -1,0 +1,33 @@
+model_type: 'BCResNet_Fastaudio'
+spec_args:
+    sr: 16000 
+    n_fft: 480
+    win_length: null
+    hop_length: 160
+    window: 'hann'
+    center: True
+    pad_mode: 'reflect'
+    trainable: False
+    verbose: True
+    output_format: 'Magnitude'
+    
+#exp on power = 1 & 2
+fastaudio:
+    n_mels: 40
+    log_mel: True
+    filter_shape: 'triangular'
+    f_min: 0
+    f_max: 8000
+    n_fft: ${model.spec_args.n_fft}
+    sample_rate: 16000
+    power_spectrogram: 2
+    amin: 1e-10
+    ref_value: 1.0
+    top_db: 80.0
+    param_change_factor: 1.0
+    param_rand_factor: 0.0
+    freeze: False
+    sort: False
+#exp on freeze =  True & False
+    
+#nnAudio feature: trainable_mel =  True 
