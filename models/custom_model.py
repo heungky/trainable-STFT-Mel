@@ -645,7 +645,7 @@ class Filterbank(torch.nn.Module):
 #        print(f'{band_mat=}')
         
         fbank_matrix = self._create_fbank_matrix(f_central_mat, band_mat).to(spectrogram.device)
-        
+#fbank_matrix trangular filter banks        
 #        print(f'{fbank_matrix.max()=}')
 #        print(f'{fbank_matrix.min()=}')        
         
@@ -661,6 +661,7 @@ class Filterbank(torch.nn.Module):
 
         # FBANK computation
 #        print(f'{spectrogram.max()}')
+#fbanks is spectrogram
         fbanks = torch.matmul(spectrogram, fbank_matrix)
 #        print(f"L654")              
         if self.log_mel:
@@ -674,7 +675,63 @@ class Filterbank(torch.nn.Module):
             )
 
         return fbanks
+    
+    def get_fbanks(self):
+        f_central=torch.clamp(self.f_central, 0, 0.5)		
+        band=torch.clamp(self.band, 3.1/16000, 603.7/16000)
+#f_central and band are the 80 parameters to control filter banks
+        if self.sort:		
+            f_central, _ = torch.sort(f_central)		
+            band, _ = torch.sort(band)
+        # Computing central frequency and bandwidth of each filter
+#         print(f'{f_central=}')   
+        f_central_mat = f_central.repeat(
+            self.all_freqs_mat.shape[1], 1
+        ).transpose(0, 1)
+#         print(f'1st {f_central_mat=}')     
+        
+        
+        band_mat = band.repeat(self.all_freqs_mat.shape[1], 1).transpose(
+            0, 1
+        )
+#f_central and band do some transformation become f_central_mat  and band_mat     
+        # Uncomment to print filter parameters
+        # print(self.f_central*self.sample_rate * self.param_change_factor)
+        # print(self.band*self.sample_rate* self.param_change_factor)
 
+        # Creation of the multiplication matrix. It is used to create
+        # the filters that average the computed spectrogram.
+        if not self.freeze:
+            f_central_mat = f_central_mat * (
+                self.sample_rate
+                * self.param_change_factor
+                * self.param_change_factor
+            )
+            band_mat = band_mat * (
+                self.sample_rate
+                * self.param_change_factor
+                * self.param_change_factor
+            )
+        else:
+            f_central_mat = f_central_mat * (self.sample_rate)
+            band_mat = band_mat * (self.sample_rate)            
+                
+        # Regularization with random changes of filter central frequency and band
+        if self.param_rand_factor != 0 and self.training:
+            rand_change = (
+                1.0
+                + torch.rand(2) * 2 * self.param_rand_factor
+                - self.param_rand_factor
+            )
+            f_central_mat = f_central_mat * rand_change[0]
+            band_mat = band_mat * rand_change[1]
+#        print(f'{f_central_mat=}')
+#        print(f'{band_mat=}')
+        
+        return self._create_fbank_matrix(f_central_mat, band_mat)
+#pass f_central_mat, band_mat to create_fbank_matrix to make filter banks 
+#created  get_fbanks  to plot filter banks
+        
         
     @staticmethod
     def _to_mel(hz):
