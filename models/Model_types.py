@@ -17,8 +17,6 @@ from models.custom_model import Filterbank #use for fastaudio model
 class SpeechCommand(LightningModule):
     def training_step(self, batch, batch_idx):
         outputs, spec = self(batch['waveforms']) 
-#        print(f'{outputs.max()=}')
-#        print(f'{outputs.min()=}')
         loss = self.criterion(outputs, batch['labels'].squeeze(1).long())
 #return outputs (2D) for calculate loss, return spec (3D) for visual
 #for debug 
@@ -34,15 +32,12 @@ class SpeechCommand(LightningModule):
             self.log_images(spec, 'Train/Spec')        
         self.log('Train/Loss', loss, on_step=False, on_epoch=True)
         return loss
-        #log(graph title, take acc as data, on_step: plot every step, on_epch: plot every epoch)
-       
-    
-         
+#log(graph title, take acc as data, on_step: plot every step, on_epch: plot every epoch)
+                    
     
     def validation_step(self, batch, batch_idx):               
         outputs, spec = self(batch['waveforms'])
-        loss = self.criterion(outputs, batch['labels'].squeeze(1).long())
-#        
+        loss = self.criterion(outputs, batch['labels'].squeeze(1).long())        
 #acc = sum(outputs.argmax(-1) == batch['labels'].squeeze(1))/outputs.shape[0]
 #accuracy for 
 #self.log('Validation/acc', acc, on_step=False, on_epoch=True)
@@ -50,15 +45,17 @@ class SpeechCommand(LightningModule):
         self.log('Validation/Loss', loss, on_step=False, on_epoch=True)          
         #if self.current_epoch==0:
         if batch_idx == 0:
-            fig, ax = plt.subplots(1,1) 
+            fig, ax = plt.subplots(1,1)
+            
 #             mel_filter_banks = torch.clamp(self.mel_layer.mel_basis, 0, 1)
 #             for i in mel_filter_banks:
 #                 ax.plot(i.cpu())
 
 #             self.logger.experiment.add_figure('Validation/MelFilterBanks', fig, global_step=self.current_epoch)
+#these is for plot mel filter band in nnAudio 
             
             self.log_images(spec, 'Validation/Spec')
-            #plot log_images for 1st epoch_1st batch
+#plot log_images for 1st epoch_1st batch
         
         output_dict = {'outputs': outputs,
                        'labels': batch['labels'].squeeze(1)}        
@@ -75,7 +72,7 @@ class SpeechCommand(LightningModule):
         pred = torch.cat(pred, 0)
         acc = sum(pred.argmax(-1) == label)/label.shape[0]
         self.log('Validation/acc', acc, on_step=False, on_epoch=True)    
-    #use the return value from validation_step: output_dict , to calculate the overall accuracy   #epoch wise 
+#use the return value from validation_step: output_dict , to calculate the overall accuracy   #epoch wise 
                               
         
     def log_images(self, tensors, key):
@@ -85,14 +82,13 @@ class SpeechCommand(LightningModule):
         plt.tight_layout()
         self.logger.experiment.add_figure(f"{key}", fig, global_step=self.current_epoch)
         plt.close(fig)
-    #plot images in TensorBoard        
+#plot images in TensorBoard        
           
     
     
     def configure_optimizers(self):
         optimizer = optim.SGD(self.parameters(),lr=1e-3, momentum=0.9,weight_decay =0.001)
-       
-        
+              
 #        def step_function(step):
 #            if step< 848*5:
 #                return step*100/(848*5)
@@ -109,13 +105,13 @@ class SpeechCommand(LightningModule):
             'scheduler': CosineAnnealingWarmupRestarts(optimizer, first_cycle_steps=5000, cycle_mult=1.0, max_lr=0.1, min_lr=0.001, warmup_steps=848*5, gamma=0.5) ,
             'interval': 'step',
             'frequency': 1,}                
-        #for learning rate schedular 
-        #warmup_steps set to 5 epochs, gamma value refer to decay %
-        #if interval = step, refer to each feedforward step
-        
+#for learning rate schedular 
+#warmup_steps set to 5 epochs, gamma value refer to decay %
+#if interval = step, refer to each feedforward step
+
         return [optimizer] , [scheduler2]
-        #return 2 lists
-        #if use constant learning rate: no cosineannealing --> exclude out the scheduler2 return
+#return 2 lists
+#if use constant learning rate: no cosineannealing --> exclude out the scheduler2 return
         
     
     
@@ -153,13 +149,7 @@ class ModelA(SpeechCommand):
         x = F.relu(self.fc2(x))
         x = self.fc3(x)
         return x, spec
-       
-    
-    
-    
-
-   
-    
+           
     
 class ModelB(SpeechCommand):    
     def __init__(self, no_output_chan,cfg_spec, fastaudio_spec):
@@ -311,6 +301,7 @@ class TransitionBlock(LightningModule):
 
         return out
 
+    
 class BCResNet_Fastaudio(SpeechCommand):
     def __init__(self, no_output_chan, cfg_spec, fastaudio_spec):
         super().__init__()        
@@ -321,9 +312,7 @@ class BCResNet_Fastaudio(SpeechCommand):
         
        
         self.fastaudio_filter = Filterbank(**fastaudio_spec)
-        
-        
-
+                
         self.conv1 = nn.Conv2d(1, 16, 5, stride=(2, 1), padding=(2, 2))
         self.block1_1 = TransitionBlock(16, 8)
         self.block1_2 = BroadcastedBlock(8)
@@ -348,25 +337,29 @@ class BCResNet_Fastaudio(SpeechCommand):
 
         self.criterion = nn.CrossEntropyLoss()
         
-        #self.mel_layer use in validation step for [mel_filter_banks = self.mel_layer.mel_basis]
-        #self.criterion use in traning & validation step
+#self.mel_layer use in validation step for [mel_filter_banks = self.mel_layer.mel_basis]
+#self.criterion use in traning & validation step
         
     def forward(self, x):        
         # x [Batch_size,16000] 2D
         #self.mel_layer.mel_basis = torch.clamp(self.mel_layer.mel_basis, 0, 1)
         
         
-        stft_output =  self.mel_layer(x) #3D [B, F, T]  
+        stft_output =  self.mel_layer(x) #3D [B, F, T]
+        torch.save(stft_output, './stft_output.pt') 
 #         print(f'{stft_output.max()=}')
 #         print(f'{stft_output.min()=}')
-        output = self.fastaudio_filter(stft_output.transpose(-1,-2)) 
+        output = self.fastaudio_filter(stft_output.transpose(-1,-2))                
+        
+        
+        
         #[B,T F], use fastaudio process stft spectrogram
         #bcoz stft_output [201, 161], [F, T]
         #size of fbank_matrix is 201x40 [F, n_filters]
 #         torch.save(stft_output, './stft_output.pt')
-#         torch.save(output, './output.pt')
-#         print(f'{output.max()=}')
-#         print(f'{output.min()=}')
+        torch.save(output, './output.pt')
+#        print(f'{output.max()=}')
+#        print(f'{output.min()=}')
         
 #         sys.exit()
         spec = output.transpose(1,2)
@@ -381,7 +374,6 @@ class BCResNet_Fastaudio(SpeechCommand):
         
         
         spec = spec.unsqueeze(1)  #4D
-
 #x is training_step_batch['waveforms' [B,16000]
 #after self.mel_layer(x) --> 3D [B,F,T]
 #after spec.unsqueeze(1) --> 4D bcoz conv1 need 4D [B,1,F,T]

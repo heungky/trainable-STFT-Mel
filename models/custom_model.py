@@ -574,9 +574,10 @@ class Filterbank(torch.nn.Module):
             self.register_parameter('f_central', f_central)
             self.register_parameter('band', band)
         else:
-            self.register_buffer('f_central', f_central)
-            self.register_buffer('band', band)            
+            self.register_buffer('f_central', f_central/self.sample_rate)
+            self.register_buffer('band', band/self.sample_rate)            
 
+#         print(f"init: {self.f_central=}")
 
         # Frequency axis
         all_freqs = torch.linspace(0, self.sample_rate // 2, self.n_stft)
@@ -599,9 +600,11 @@ class Filterbank(torch.nn.Module):
             f_central, _ = torch.sort(f_central)		
             band, _ = torch.sort(band)
         # Computing central frequency and bandwidth of each filter
+#         print(f'{f_central=}')   
         f_central_mat = f_central.repeat(
             self.all_freqs_mat.shape[1], 1
         ).transpose(0, 1)
+#         print(f'1st {f_central_mat=}')     
         
         
         band_mat = band.repeat(self.all_freqs_mat.shape[1], 1).transpose(
@@ -625,9 +628,12 @@ class Filterbank(torch.nn.Module):
                 * self.param_change_factor
                 * self.param_change_factor
             )
+        else:
+            f_central_mat = f_central_mat * (self.sample_rate)
+            band_mat = band_mat * (self.sample_rate)            
                 
         # Regularization with random changes of filter central frequency and band
-        elif self.param_rand_factor != 0 and self.training:
+        if self.param_rand_factor != 0 and self.training:
             rand_change = (
                 1.0
                 + torch.rand(2) * 2 * self.param_rand_factor
@@ -635,8 +641,13 @@ class Filterbank(torch.nn.Module):
             )
             f_central_mat = f_central_mat * rand_change[0]
             band_mat = band_mat * rand_change[1]
-
+#        print(f'{f_central_mat=}')
+#        print(f'{band_mat=}')
+        
         fbank_matrix = self._create_fbank_matrix(f_central_mat, band_mat).to(spectrogram.device)
+        
+#        print(f'{fbank_matrix.max()=}')
+#        print(f'{fbank_matrix.min()=}')        
         
         sp_shape = spectrogram.shape
 
@@ -649,12 +660,12 @@ class Filterbank(torch.nn.Module):
             )
 
         # FBANK computation
-       
+#        print(f'{spectrogram.max()}')
         fbanks = torch.matmul(spectrogram, fbank_matrix)
-              
+#        print(f"L654")              
         if self.log_mel:
-            fbanks = self._amplitude_to_DB(fbanks)        
-                
+            fbanks = self._amplitude_to_DB(fbanks)
+#            print(f"Pass")                
         # Reshaping in the case of multi-channel inputs
         if len(sp_shape) == 4:
             fb_shape = fbanks.shape
