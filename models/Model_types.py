@@ -45,7 +45,11 @@ class SpeechCommand(LightningModule):
         self.log('Validation/Loss', loss, on_step=False, on_epoch=True)          
         #if self.current_epoch==0:
         if batch_idx == 0:
-            fig, ax = plt.subplots(1,1)
+            fig, axes = plt.subplots(1,1)
+            fbank_matrix = self.fastaudio_filter.get_fbanks()
+            for idx, i in enumerate(fbank_matrix.t().detach().cpu().numpy()):
+                axes.plot(i)
+            self.logger.experiment.add_figure('Validation/fastaudio_MelFilterBanks', fig, global_step=self.current_epoch)
             
 #             mel_filter_banks = torch.clamp(self.mel_layer.mel_basis, 0, 1)
 #             for i in mel_filter_banks:
