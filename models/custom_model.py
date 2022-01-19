@@ -530,6 +530,8 @@ class Filterbank(torch.nn.Module):
         self.device_inp = torch.device("cpu")
         self.param_change_factor = param_change_factor
         self.param_rand_factor = param_rand_factor
+        zero = torch.zeros(1)
+        self.register_buffer('zero', zero)         
 
         if self.power_spectrogram == 2:
             self.multiplier = 10
@@ -577,7 +579,8 @@ class Filterbank(torch.nn.Module):
         all_freqs = torch.linspace(0, self.sample_rate // 2, self.n_stft)
 
         # Replicating for all the filters
-        self.all_freqs_mat = all_freqs.repeat(self.f_central.shape[0], 1)
+        all_freqs_mat = all_freqs.repeat(self.f_central.shape[0], 1)
+        self.register_buffer('all_freqs_mat', all_freqs_mat)         
 
     def forward(self, spectrogram):
         """Returns the FBANks.
@@ -596,10 +599,12 @@ class Filterbank(torch.nn.Module):
         f_central_mat = f_central.repeat(
             self.all_freqs_mat.shape[1], 1
         ).transpose(0, 1)
+        
+        
         band_mat = band.repeat(self.all_freqs_mat.shape[1], 1).transpose(
             0, 1
         )
-
+        
         # Uncomment to print filter parameters
         # print(self.f_central*self.sample_rate * self.param_change_factor)
         # print(self.band*self.sample_rate* self.param_change_factor)
@@ -617,7 +622,7 @@ class Filterbank(torch.nn.Module):
                 * self.param_change_factor
                 * self.param_change_factor
             )
-
+                
         # Regularization with random changes of filter central frequency and band
         elif self.param_rand_factor != 0 and self.training:
             rand_change = (
@@ -632,6 +637,8 @@ class Filterbank(torch.nn.Module):
         
         sp_shape = spectrogram.shape
 
+                          
+        
         # Managing multi-channels case (batch, time, channels)
         if len(sp_shape) == 4:
             spectrogram = spectrogram.reshape(
@@ -641,9 +648,10 @@ class Filterbank(torch.nn.Module):
         # FBANK computation
        
         fbanks = torch.matmul(spectrogram, fbank_matrix)
+              
         if self.log_mel:
-            fbanks = self._amplitude_to_DB(fbanks)
-
+            fbanks = self._amplitude_to_DB(fbanks)        
+                
         # Reshaping in the case of multi-channel inputs
         if len(sp_shape) == 4:
             fb_shape = fbanks.shape
@@ -653,6 +661,7 @@ class Filterbank(torch.nn.Module):
 
         return fbanks
 
+        
     @staticmethod
     def _to_mel(hz):
         """Returns mel-frequency value corresponding to the input
@@ -691,16 +700,17 @@ class Filterbank(torch.nn.Module):
         """
 
         # Computing the slops of the filters
-        all_freqs=all_freqs#.cuda()
+        all_freqs=all_freqs                       
         slope = (all_freqs - f_central) / band
         left_side = slope + 1.0
         right_side = -slope + 1.0
-
+        
+                       
         # Adding zeros for negative values
-        zero = torch.zeros(1)#.()
-        # zero = torch.zeros(1, device=self.device_inp)
+        #zero = torch.zeros(1)#.()   coz this is constant, moved to __init__
+        #zero = torch.zeros(1, device=self.device_inp)
         fbank_matrix = torch.max(
-            zero, torch.min(left_side, right_side)
+            self.zero, torch.min(left_side, right_side)
         ).transpose(0, 1)
 
         return fbank_matrix
@@ -804,6 +814,8 @@ class Filterbank(torch.nn.Module):
 
         return x_db
 
+    #############################
+    
 class FastAudio(torch.nn.Module):
     """Generate features for input to the speech pipeline.
 
