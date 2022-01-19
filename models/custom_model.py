@@ -572,7 +572,10 @@ class Filterbank(torch.nn.Module):
                 band / (self.sample_rate * self.param_change_factor)
             )
             self.register_parameter('f_central', f_central)
-            self.register_parameter('band', band)                   
+            self.register_parameter('band', band)
+        else:
+            self.register_buffer('f_central', f_central)
+            self.register_buffer('band', band)            
 
 
         # Frequency axis

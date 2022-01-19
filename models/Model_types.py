@@ -17,6 +17,8 @@ from models.custom_model import Filterbank #use for fastaudio model
 class SpeechCommand(LightningModule):
     def training_step(self, batch, batch_idx):
         outputs, spec = self(batch['waveforms']) 
+#        print(f'{outputs.max()=}')
+#        print(f'{outputs.min()=}')
         loss = self.criterion(outputs, batch['labels'].squeeze(1).long())
 #return outputs (2D) for calculate loss, return spec (3D) for visual
 #for debug 
@@ -355,11 +357,18 @@ class BCResNet_Fastaudio(SpeechCommand):
         
         
         stft_output =  self.mel_layer(x) #3D [B, F, T]  
+#         print(f'{stft_output.max()=}')
+#         print(f'{stft_output.min()=}')
         output = self.fastaudio_filter(stft_output.transpose(-1,-2)) 
         #[B,T F], use fastaudio process stft spectrogram
         #bcoz stft_output [201, 161], [F, T]
         #size of fbank_matrix is 201x40 [F, n_filters]
+#         torch.save(stft_output, './stft_output.pt')
+#         torch.save(output, './output.pt')
+#         print(f'{output.max()=}')
+#         print(f'{output.min()=}')
         
+#         sys.exit()
         spec = output.transpose(1,2)
         
         
@@ -368,7 +377,9 @@ class BCResNet_Fastaudio(SpeechCommand):
         
         #spec = torch.relu(spec) #this is for throw out negative mel_filter band value 
         
-        spec = torch.log(spec+1e-10)  #3D
+        #spec = torch.log(spec+1e-10)  #3D
+        
+        
         spec = spec.unsqueeze(1)  #4D
 
 #x is training_step_batch['waveforms' [B,16000]
