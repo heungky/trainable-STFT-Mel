@@ -32,7 +32,6 @@ def cnn(cfg : DictConfig) -> None:
 
 
 
-
     trainloader = torch.utils.data.DataLoader(trainset,                                
                                   collate_fn=lambda x: data_processing(x),
                                              **cfg.dataloader.train)
@@ -48,10 +47,9 @@ def cnn(cfg : DictConfig) -> None:
 
 
     #for dataloader, trainset need shuffle
-    net = getattr(Model, cfg.model.model_type)(cfg.no_output_chan, cfg.model.spec_args, cfg.model.fastaudio)
+    net = getattr(Model, cfg.model.model_type)(cfg.no_output_chan, cfg.model)
     # net = net.to(gpus)
     print(type(net))
-
 
 
     #added into Model_types.py, using pytorch_lightning
