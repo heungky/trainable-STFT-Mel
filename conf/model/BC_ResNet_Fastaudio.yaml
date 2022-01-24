@@ -28,6 +28,16 @@ fastaudio:
     param_rand_factor: 0.0
     freeze: False
     sort: False
-#exp on freeze =  True & False
     
+optimizer:
+    warmup: 'cosine'
+#warmup: cosine / constant    
+
+#param_change_factor: bool
+# If freeze=False, this parameter affects the speed at which the filter
+# parameters (i.e., central_freqs and bands) can be changed.  When high
+# (e.g., param_change_factor=1) the filters change a lot during training.
+# When low (e.g. param_change_factor=0.1) the filter parameters are more
+# stable during training    
 #nnAudio feature: trainable_mel =  True 
+
