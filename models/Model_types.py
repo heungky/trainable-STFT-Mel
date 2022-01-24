@@ -12,12 +12,19 @@ from torch import Tensor
 from torch.optim.lr_scheduler import LambdaLR
 from cosine_annealing_warmup import CosineAnnealingWarmupRestarts
 from models.custom_model import Filterbank #use for fastaudio model 
+from .utils import SubSpectralNorm, BroadcastedBlock, TransitionBlock
+
 
 
 class SpeechCommand(LightningModule):
     def training_step(self, batch, batch_idx):
         outputs, spec = self(batch['waveforms']) 
         loss = self.criterion(outputs, batch['labels'].squeeze(1).long())
+        if torch.isnan(loss)==True:
+            torch.save(self.fastaudio_filter.get_fbanks(), 'fbank_matrix.pt')
+            sys.exit()
+            
+        
 #return outputs (2D) for calculate loss, return spec (3D) for visual
 #for debug 
 #torch.save(outputs, 'output.pt')
@@ -57,6 +64,7 @@ class SpeechCommand(LightningModule):
 
 #             self.logger.experiment.add_figure('Validation/MelFilterBanks', fig, global_step=self.current_epoch)
 #these is for plot mel filter band in nnAudio 
+#fbank_matrix contain all filterbank value
             
             self.log_images(spec, 'Validation/Spec')
 #plot log_images for 1st epoch_1st batch
@@ -104,28 +112,40 @@ class SpeechCommand(LightningModule):
 #            'interval': 'step',
 #            'frequency': 1,
 #       }
-        
-        scheduler2 = {
-            'scheduler': CosineAnnealingWarmupRestarts(optimizer, first_cycle_steps=5000, cycle_mult=1.0, max_lr=0.1, min_lr=0.001, warmup_steps=848*5, gamma=0.5) ,
-            'interval': 'step',
-            'frequency': 1,}                
+        if self.optimizer.warmup=='cosine':
+            scheduler = {
+                'scheduler': CosineAnnealingWarmupRestarts(optimizer,
+                                                           first_cycle_steps=5000,
+                                                           cycle_mult=1.0,
+                                                           max_lr=0.1,
+                                                           min_lr=0.001,
+                                                           warmup_steps=848*5,
+                                                           gamma=0.5) ,
+                'interval': 'step',
+                'frequency': 1,}
+            return [optimizer] , [scheduler]            
+        elif self.optimizer.warmup=='constant':
+            return [optimizer]
+        else:
+            raise ValueError(f"Please choose the correct warmup type."
+                             f"{self.optimizer.warmup} is not supported")
 #for learning rate schedular 
 #warmup_steps set to 5 epochs, gamma value refer to decay %
 #if interval = step, refer to each feedforward step
 
-        return [optimizer] , [scheduler2]
+
 #return 2 lists
 #if use constant learning rate: no cosineannealing --> exclude out the scheduler2 return
         
-    
+           
     
 
 #python Inheritance
 class ModelA(SpeechCommand):
-    def __init__(self, no_output_chan, cfg_spec, fastaudio_spec):
+    def __init__(self, no_output_chan, cfg_model):
         super().__init__()
         print(f"I am model A")   
-        self.mel_layer = MelSpectrogram(**cfg_spec)        
+        self.mel_layer = MelSpectrogram(**cfg_model.spec_args)        
         
         self.conv1 = nn.Conv2d(1,no_output_chan,5)    
         self.conv2 = nn.Conv2d(no_output_chan,16,5)
@@ -156,7 +176,7 @@ class ModelA(SpeechCommand):
            
     
 class ModelB(SpeechCommand):    
-    def __init__(self, no_output_chan,cfg_spec, fastaudio_spec):
+    def __init__(self, no_output_chan,cfg_model):
         super().__init__()
         print(f"I am model B")
         self.mel_layer = MelSpectrogram(**cfg_spec)           
@@ -188,134 +208,20 @@ class ModelB(SpeechCommand):
     
     
     
-#start of BCResNet        
-class SubSpectralNorm(LightningModule):
-    def __init__(self, C, S, eps=1e-5):
-        super(SubSpectralNorm, self).__init__()
-        self.S = S
-        self.eps = eps
-        self.bn = nn.BatchNorm2d(C*S)
 
-    def forward(self, x):
-        # x: input features with shape {N, C, F, T}
-        # S: number of sub-bands
-        N, C, F, T = x.size()
-        x = x.view(N, C * self.S, F // self.S, T)
-
-        x = self.bn(x)
-        return x.view(N, C, F, T)
-    
-class BroadcastedBlock(LightningModule):
-    def __init__(
-            self,
-            planes: int,
-            dilation=1,
-            stride=1,
-            temp_pad=(0, 1),
-    ) -> None:
-        super(BroadcastedBlock, self).__init__()
-
-        self.freq_dw_conv = nn.Conv2d(planes, planes, kernel_size=(3, 1), padding=(1, 0), groups=planes,
-                                      dilation=dilation,
-                                      stride=stride, bias=False)
-        self.ssn1 = SubSpectralNorm(planes, 5)
-        self.temp_dw_conv = nn.Conv2d(planes, planes, kernel_size=(1, 3), padding=temp_pad, groups=planes,
-                                      dilation=dilation, stride=stride, bias=False)
-        self.bn = nn.BatchNorm2d(planes)
-        self.relu = nn.ReLU(inplace=True)
-        self.channel_drop = nn.Dropout2d(p=0.1)
-        self.swish = nn.SiLU()
-        self.conv1x1 = nn.Conv2d(planes, planes, kernel_size=(1, 1), bias=False)
-
-    def forward(self, x: Tensor) -> Tensor:
-        identity = x
-
-        # f2
-        ##########################
-        out = self.freq_dw_conv(x)
-        out = self.ssn1(out)
-        ##########################
-
-        auxilary = out
-        out = out.mean(2, keepdim=True)  # frequency average pooling
-
-        # f1
-        ############################
-        out = self.temp_dw_conv(out)
-        out = self.bn(out)
-        out = self.swish(out)
-        out = self.conv1x1(out)
-        out = self.channel_drop(out)
-        ############################
-
-        out = out + identity + auxilary
-        out = self.relu(out)
-        return out
-    
-
-class TransitionBlock(LightningModule):
-
-    def __init__(
-            self,
-            inplanes: int,
-            planes: int,
-            dilation=1,
-            stride=1,
-            temp_pad=(0, 1),
-    ) -> None:
-        super(TransitionBlock, self).__init__()
-
-        self.freq_dw_conv = nn.Conv2d(planes, planes, kernel_size=(3, 1), padding=(1, 0), groups=planes,
-                                      stride=stride,
-                                      dilation=dilation, bias=False)
-        self.ssn = SubSpectralNorm(planes, 5)
-        self.temp_dw_conv = nn.Conv2d(planes, planes, kernel_size=(1, 3), padding=temp_pad, groups=planes,
-                                      dilation=dilation, stride=stride, bias=False)
-        self.bn1 = nn.BatchNorm2d(planes)
-        self.bn2 = nn.BatchNorm2d(planes)
-        self.relu = nn.ReLU(inplace=True)
-        self.channel_drop = nn.Dropout2d(p=0.5)
-        self.swish = nn.SiLU()
-        self.conv1x1_1 = nn.Conv2d(inplanes, planes, kernel_size=(1, 1), bias=False)
-        self.conv1x1_2 = nn.Conv2d(planes, planes, kernel_size=(1, 1), bias=False)
-
-    def forward(self, x: Tensor) -> Tensor:
-        # f2
-        #############################
-        out = self.conv1x1_1(x)
-        out = self.bn1(out)
-        out = self.relu(out)
-        out = self.freq_dw_conv(out)
-        out = self.ssn(out)
-        #############################
-        auxilary = out
-        out = out.mean(2, keepdim=True)  # frequency average pooling
-
-        # f1
-        #############################
-        out = self.temp_dw_conv(out)
-        out = self.bn2(out)
-        out = self.swish(out)
-        out = self.conv1x1_2(out)
-        out = self.channel_drop(out)
-        #############################
-
-        out = auxilary + out
-        out = self.relu(out)
-
-        return out
 
     
 class BCResNet_Fastaudio(SpeechCommand):
-    def __init__(self, no_output_chan, cfg_spec, fastaudio_spec):
+    def __init__(self, no_output_chan, cfg_model):
         super().__init__()        
-        self.mel_layer = STFT(**cfg_spec)   
+        self.mel_layer = STFT(**cfg_model.spec_args)   
         #STFT from nnAudio.features.stft
         #stft output is complex number 
         #'Magnitude' = abosulute value of complex number 
         
        
-        self.fastaudio_filter = Filterbank(**fastaudio_spec)
+        self.fastaudio_filter = Filterbank(**cfg_model.fastaudio)
+        self.optimizer = cfg_model.optimizer
                 
         self.conv1 = nn.Conv2d(1, 16, 5, stride=(2, 1), padding=(2, 2))
         self.block1_1 = TransitionBlock(16, 8)
