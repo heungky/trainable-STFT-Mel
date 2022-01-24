@@ -1,1 +1,2 @@
-from .Model_types import ModelA, ModelB, BCResNet,BCResNet_Fastaudio
+from .nnAudio_model import BCResNet
+from .fastaudio_model import BCResNet_Fastaudio
