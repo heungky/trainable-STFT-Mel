@@ -13,17 +13,15 @@ from torch.optim.lr_scheduler import LambdaLR
 from cosine_annealing_warmup import CosineAnnealingWarmupRestarts
 
 
-
-
 class SpeechCommand(LightningModule):
     def training_step(self, batch, batch_idx):
+        if self.current_epoch<70:
+            self.mel_layer.mel_basis.requires_grad = False
+        else:
+            self.mel_layer.mel_basis.requires_grad = True
         outputs, spec = self(batch['waveforms']) 
         loss = self.criterion(outputs, batch['labels'].squeeze(1).long())
-        if torch.isnan(loss)==True:
-            torch.save(self.fastaudio_filter.get_fbanks(), 'fbank_matrix.pt')
-            sys.exit()
-            
-        
+
 #return outputs (2D) for calculate loss, return spec (3D) for visual
 #for debug 
 #torch.save(outputs, 'output.pt')
@@ -52,18 +50,36 @@ class SpeechCommand(LightningModule):
         #if self.current_epoch==0:
         if batch_idx == 0:
             fig, axes = plt.subplots(1,1)
-            fbank_matrix = self.fastaudio_filter.get_fbanks()
-            for idx, i in enumerate(fbank_matrix.t().detach().cpu().numpy()):
-                axes.plot(i)
-            self.logger.experiment.add_figure('Validation/fastaudio_MelFilterBanks', fig, global_step=self.current_epoch)
             
-#             mel_filter_banks = torch.clamp(self.mel_layer.mel_basis, 0, 1)
-#             for i in mel_filter_banks:
-#                 ax.plot(i.cpu())
+            if self.fastaudio_filter!=None:
+                fbank_matrix = self.fastaudio_filter.get_fbanks()
+                f_central = self.fastaudio_filter.f_central
+                band = self.fastaudio_filter.band
+                debug_dict = {'fbank_matrix': fbank_matrix,
+                              'f_central': f_central,
+                              'band': band}
+                
+                torch.save(debug_dict, f'debug_dict_e{self.current_epoch}.pt')
+                for idx, i in enumerate(fbank_matrix.t().detach().cpu().numpy()):
+                    axes.plot(i)
+                self.logger.experiment.add_figure(
+                    'Validation/fastaudio_MelFilterBanks',
+                    fig,
+                    global_step=self.current_epoch)
+                
+            elif self.fastaudio_filter==None:
+            
+                mel_filter_banks = torch.clamp(self.mel_layer.mel_basis, 0, 1)
+                for i in mel_filter_banks:
+                    axes.plot(i.cpu())
 
-#             self.logger.experiment.add_figure('Validation/MelFilterBanks', fig, global_step=self.current_epoch)
-#these is for plot mel filter band in nnAudio 
-#fbank_matrix contain all filterbank value
+                self.logger.experiment.add_figure(
+                    'Validation/MelFilterBanks',
+                    fig,
+                    global_step=self.current_epoch)
+                
+#     these is for plot mel filter band in nnAudio 
+#     fbank_matrix contain all filterbank value
             
             self.log_images(spec, 'Validation/Spec')
 #plot log_images for 1st epoch_1st batch
@@ -98,7 +114,7 @@ class SpeechCommand(LightningModule):
     
     
     def configure_optimizers(self):
-        optimizer = optim.SGD(self.parameters(),lr=1e-3, momentum=0.9,weight_decay =0.001)
+        optimizer = optim.SGD(self.parameters(),lr=1e-4, momentum=0.9,weight_decay =0.001)
               
 #        def step_function(step):
 #            if step< 848*5:
@@ -111,7 +127,7 @@ class SpeechCommand(LightningModule):
 #            'interval': 'step',
 #            'frequency': 1,
 #       }
-        if self.optimizer.warmup=='cosine':
+        if self.optimizer_cfg.warmup=='cosine':
             scheduler = {
                 'scheduler': CosineAnnealingWarmupRestarts(optimizer,
                                                            first_cycle_steps=5000,
@@ -123,7 +139,7 @@ class SpeechCommand(LightningModule):
                 'interval': 'step',
                 'frequency': 1,}
             return [optimizer] , [scheduler]            
-        elif self.optimizer.warmup=='constant':
+        elif self.optimizer_cfg.warmup=='constant':
             return [optimizer]
         else:
             raise ValueError(f"Please choose the correct warmup type."
