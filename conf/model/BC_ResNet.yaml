@@ -17,3 +17,6 @@ spec_args:
     trainable_STFT: False
     verbose: True
 #nnAudio feature: trainable_mel =  True 
+
+optimizer:
+    warmup: 'cosine'
