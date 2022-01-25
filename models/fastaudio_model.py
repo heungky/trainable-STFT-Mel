@@ -25,7 +25,7 @@ class BCResNet_Fastaudio(SpeechCommand):
         
        
         self.fastaudio_filter = Filterbank(**cfg_model.fastaudio)
-        self.optimizer = cfg_model.optimizer
+        self.optimizer_cfg = cfg_model.optimizer
                 
         self.conv1 = nn.Conv2d(1, 16, 5, stride=(2, 1), padding=(2, 2))
         self.block1_1 = TransitionBlock(16, 8)

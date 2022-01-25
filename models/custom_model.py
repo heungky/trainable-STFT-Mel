@@ -5,26 +5,8 @@ import math
 import logging
 from packaging import version
 from nnAudio.Spectrogram import *
-
-# from speechbrain.processing.features import (
-#    STFT,
-#    spectral_magnitude,
-#    Deltas,
-#     ContextWindow,
-# )
-# from speechbrain.utils.checkpoints import (
-#     mark_as_saver,
-#     mark_as_loader,
-#     mark_as_transfer,
-#     register_checkpoint_hooks,
-# )
-
-# from leaf_audio_pytorch import postprocessing
 from torch import nn
 from torch.nn import functional as F
-
-
-
 
 
 class Filterbank(torch.nn.Module):
@@ -241,8 +223,7 @@ class Filterbank(torch.nn.Module):
         
         sp_shape = spectrogram.shape
 
-                          
-        
+                                  
         # Managing multi-channels case (batch, time, channels)
         if len(sp_shape) == 4:
             spectrogram = spectrogram.reshape(
@@ -253,7 +234,7 @@ class Filterbank(torch.nn.Module):
 #        print(f'{spectrogram.max()}')
 #fbanks is spectrogram
         fbanks = torch.matmul(spectrogram, fbank_matrix)
-#        print(f"L654")              
+#        print(f"L255")              
         if self.log_mel:
             fbanks = self._amplitude_to_DB(fbanks)
 #            print(f"Pass")                
