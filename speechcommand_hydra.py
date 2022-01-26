@@ -47,7 +47,10 @@ def cnn(cfg : DictConfig) -> None:
 
 
     #for dataloader, trainset need shuffle
-    net = getattr(Model, cfg.model.model_type)(cfg.no_output_chan, cfg.model)
+    if cfg.model.model_type=='X_vector':
+        net = getattr(Model, cfg.model.model_type)(**cfg.model.args, cfg_model=cfg.model)        
+    else:
+        net = getattr(Model, cfg.model.model_type)(cfg.no_output_chan, cfg.model)
     # net = net.to(gpus)
     print(type(net))
 

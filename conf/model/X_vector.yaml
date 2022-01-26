@@ -1,0 +1,25 @@
+model_type: 'X_vector'
+args:
+    input_dim: 40
+    num_classes: 35
+spec_args:
+    sr: 16000 
+    n_fft: 480
+    win_length: null
+    n_mels: 128
+    n_mfcc: 40
+    hop_length: 160
+    window: 'hann'
+    center: True
+    pad_mode: 'reflect'
+    power: 2.0
+    htk: False
+    fmin: 0.0
+    fmax: null
+    norm: 1
+    trainable_mel: True
+    trainable_STFT: False
+    verbose: True
+
+optimizer:
+    warmup: 'cosine'

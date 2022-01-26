@@ -8,7 +8,7 @@ from nnAudio.Spectrogram import *
 from torch import nn
 from torch.nn import functional as F
 
-
+#for fastaudio
 class Filterbank(torch.nn.Module):
     """computes filter bank (FBANK) features given spectral magnitudes.
 
