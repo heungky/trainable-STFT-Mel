@@ -9,7 +9,7 @@ from nnAudio.features.mel import MelSpectrogram, STFT, MFCC
 
 
 class X_vector(SpeechCommand):
-    def __init__(self, input_dim = 40, num_classes=8,cfg_model=None):
+    def __init__(self, input_dim = 40, num_classes=35,cfg_model=None):
         super(X_vector, self).__init__()
         self.tdnn1 = TDNN(input_dim=input_dim, output_dim=512, context_size=5, dilation=1,dropout_p=0.5)
         self.tdnn2 = TDNN(input_dim=512, output_dim=512, context_size=3, dilation=1,dropout_p=0.5)
@@ -24,18 +24,18 @@ class X_vector(SpeechCommand):
         
         self.optimizer_cfg = cfg_model.optimizer
         self.criterion = nn.CrossEntropyLoss()
-#         self.mel_layer = MelSpectrogram(**cfg_model.spec_args)
-        self.mel_layer = MFCC(**cfg_model.spec_args)
+        self.mel_layer = MelSpectrogram(**cfg_model.spec_args)
+#        self.mel_layer = MFCC(**cfg_model.spec_args)
         self.fastaudio_filter=None
         
     def forward(self, inputs):
 
-        #inputs is training_step_batch['waveforms' [B,16000]
+        #inputs is 2D training_step_batch['waveforms' [B,16000]
         #after self.mel_layer(inputs) --> 3D [B,F,T]
         spec = self.mel_layer(inputs)
-#         spec = torch.log(spec+1e-10)
+        spec = torch.log(spec+1e-10)
         spec = spec.transpose(1, 2)
-        #B, T, F
+        #become B, T, F
         
        
         tdnn1_out = self.tdnn1(spec)
@@ -51,7 +51,7 @@ class X_vector(SpeechCommand):
         x_vec = self.segment7(segment6_out)
         predictions = self.softmax(self.output(x_vec))
         spec = spec.transpose(1,2)
-        #B, F, T
+        #become B, F, T
         return predictions,spec
     
     

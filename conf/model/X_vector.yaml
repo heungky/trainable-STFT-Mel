@@ -6,8 +6,8 @@ spec_args:
     sr: 16000 
     n_fft: 480
     win_length: null
-    n_mels: 128
-    n_mfcc: 40
+    n_mels: 40
+#    n_mfcc: 40
     hop_length: 160
     window: 'hann'
     center: True
@@ -22,4 +22,7 @@ spec_args:
     verbose: True
 
 optimizer:
-    warmup: 'cosine'
+    warmup: 'constant'
+    
+#if use mfcc,remove log inside model 
+#cosine or constant

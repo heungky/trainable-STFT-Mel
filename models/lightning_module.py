@@ -15,10 +15,10 @@ from cosine_annealing_warmup import CosineAnnealingWarmupRestarts
 
 class SpeechCommand(LightningModule):
     def training_step(self, batch, batch_idx):
-        if self.current_epoch<70:
-            self.mel_layer.mel_basis.requires_grad = False
-        else:
-            self.mel_layer.mel_basis.requires_grad = True
+#        if self.current_epoch<70:
+#           self.mel_layer.mel_basis.requires_grad = False
+#        else:
+#        self.mel_layer.mel_basis.requires_grad = True
         outputs, spec = self(batch['waveforms']) 
         loss = self.criterion(outputs, batch['labels'].squeeze(1).long())
 
@@ -59,7 +59,7 @@ class SpeechCommand(LightningModule):
                               'f_central': f_central,
                               'band': band}
                 
-                torch.save(debug_dict, f'debug_dict_e{self.current_epoch}.pt')
+#                 torch.save(debug_dict, f'debug_dict_e{self.current_epoch}.pt')
                 for idx, i in enumerate(fbank_matrix.t().detach().cpu().numpy()):
                     axes.plot(i)
                 self.logger.experiment.add_figure(
@@ -114,7 +114,24 @@ class SpeechCommand(LightningModule):
     
     
     def configure_optimizers(self):
-        optimizer = optim.SGD(self.parameters(),lr=1e-4, momentum=0.9,weight_decay =0.001)
+        model_param = []
+        for name, params in self.named_parameters():
+            if 'mel_layer.' in name:
+                pass
+            else:
+                model_param.append(params)          
+        optimizer = optim.SGD([
+                                {"params": self.mel_layer.parameters(),
+                                 "lr": 1e-5,
+                                 "momentum": 0.9,
+                                 "weight_decay": 0.001},
+                                {"params": model_param,
+                                 "lr": 1e-3,
+                                 "momentum": 0.9,
+                                 "weight_decay": 0.001}            
+                              ])
+#for applying diff lr in model and mel filter bank        
+            
               
 #        def step_function(step):
 #            if step< 848*5:
@@ -143,7 +160,7 @@ class SpeechCommand(LightningModule):
             return [optimizer]
         else:
             raise ValueError(f"Please choose the correct warmup type."
-                             f"{self.optimizer.warmup} is not supported")
+                             f"{self.optimizer_cfg.warmup} is not supported")
 #for learning rate schedular 
 #warmup_steps set to 5 epochs, gamma value refer to decay %
 #if interval = step, refer to each feedforward step
