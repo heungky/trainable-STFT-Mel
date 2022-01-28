@@ -148,7 +148,10 @@ class BCResNet_exp(SpeechCommand):
 #         print(f"{self.mel_layer.mel_basis.shape=}")
         
 #        self.mel_layer.mel_basis.grad[:20] = 0 # freeze first 20 triangles    
-         self.mel_layer.mel_basis.grad[20:] = 0  # freeze last 20 triangles
+#        self.mel_layer.mel_basis.grad[20:] = 0  # freeze last 20 triangles
+#        self.mel_layer.mel_basis.grad[1::2] = 0 #freeze odd number 
+        self.mel_layer.mel_basis.grad[0::2] = 0 #freeze even number 
+
 #mel_basis is mel_spectrogram info
 #mel_basis size is 241:40   ****40 mel filter bank, each with 241 datapoint 
         
