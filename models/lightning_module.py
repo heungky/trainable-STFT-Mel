@@ -101,6 +101,66 @@ class SpeechCommand(LightningModule):
         self.log('Validation/acc', acc, on_step=False, on_epoch=True)    
 #use the return value from validation_step: output_dict , to calculate the overall accuracy   #epoch wise 
                               
+    def test_step(self, batch, batch_idx):               
+        outputs, spec = self(batch['waveforms'])
+        loss = self.criterion(outputs, batch['labels'].squeeze(1).long())        
+#acc = sum(outputs.argmax(-1) == batch['labels'].squeeze(1))/outputs.shape[0]
+#accuracy for 
+#self.log('Validation/acc', acc, on_step=False, on_epoch=True)
+
+        self.log('Test/Loss', loss, on_step=False, on_epoch=True)          
+        #if self.current_epoch==0:
+        if batch_idx == 0:
+            fig, axes = plt.subplots(1,1)
+            
+            if self.fastaudio_filter!=None:
+                fbank_matrix = self.fastaudio_filter.get_fbanks()
+                f_central = self.fastaudio_filter.f_central
+                band = self.fastaudio_filter.band
+                debug_dict = {'fbank_matrix': fbank_matrix,
+                              'f_central': f_central,
+                              'band': band}
+                
+#                 torch.save(debug_dict, f'debug_dict_e{self.current_epoch}.pt')
+                for idx, i in enumerate(fbank_matrix.t().detach().cpu().numpy()):
+                    axes.plot(i)
+                self.logger.experiment.add_figure(
+                    'Test/fastaudio_MelFilterBanks',
+                    fig,
+                    global_step=self.current_epoch)
+                
+            elif self.fastaudio_filter==None:
+            
+                mel_filter_banks = torch.clamp(self.mel_layer.mel_basis, 0, 1)
+                for i in mel_filter_banks:
+                    axes.plot(i.cpu())
+
+                self.logger.experiment.add_figure(
+                    'Test/MelFilterBanks',
+                    fig,
+                    global_step=self.current_epoch)
+                
+#     these is for plot mel filter band in nnAudio 
+#     fbank_matrix contain all filterbank value
+            
+            self.log_images(spec, 'Test/Spec')
+#plot log_images for 1st epoch_1st batch
+        
+        output_dict = {'outputs': outputs,
+                       'labels': batch['labels'].squeeze(1)}        
+        return output_dict
+
+    
+    def test_epoch_end(self, outputs):
+        pred = []
+        label = []
+        for output in outputs:
+            pred.append(output['outputs'])
+            label.append(output['labels'])
+        label = torch.cat(label, 0)
+        pred = torch.cat(pred, 0)
+        acc = sum(pred.argmax(-1) == label)/label.shape[0]
+        self.log('Test/acc', acc, on_step=False, on_epoch=True)        
         
     def log_images(self, tensors, key):
         fig, axes = plt.subplots(2,2, figsize=(12,5), dpi=100)

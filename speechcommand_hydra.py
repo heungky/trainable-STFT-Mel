@@ -88,6 +88,7 @@ def cnn(cfg : DictConfig) -> None:
     trainer = Trainer(**cfg.trainer, logger = logger, callbacks=callbacks)
 
     trainer.fit(net, trainloader, validloader)
+    trainer.test(net, testloader)
     #added validloader, in order to reach validation_step
 
 
