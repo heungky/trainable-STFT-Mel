@@ -1,4 +1,5 @@
 import hydra
+from hydra.utils import to_absolute_path
 from omegaconf import DictConfig, OmegaConf
 ##speechcommands cnn
 
@@ -10,7 +11,6 @@ import pandas
 import tqdm
 from torch.nn.utils.rnn import pad_sequence
 import matplotlib.pyplot as plt
-from IPython.display import Audio
 from dataloading_util import data_processing
 import models as Model 
 from pytorch_lightning import Trainer
@@ -23,6 +23,8 @@ from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 @hydra.main(config_path="conf", config_name="config")
 def cnn(cfg : DictConfig) -> None:
 #     print(OmegaConf.to_yaml(cfg))
+
+    cfg.data_root = to_absolute_path(cfg.data_root)
 
     batch_size = cfg.batch_size
 
