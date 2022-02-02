@@ -92,7 +92,7 @@ def load_speechcommands_item(filepath: str, path: str) -> Tuple[Tensor, int, str
     # [1] https://github.com/tensorflow/datasets/blob/master/tensorflow_datasets/url_checksums/speech_commands.txt
     speaker, _ = os.path.splitext(filename)
     speaker, _ = os.path.splitext(speaker)
-
+    
     speaker_id, utterance_number = speaker.split(HASH_DIVIDER)
     utterance_number = int(utterance_number)
 
@@ -109,11 +109,17 @@ def caching_data(_walker, path, subset):
         if label in UNKNOWN: # if the label is not one of the 10 commands, map them to unknown
             label = '_unknown_'
         
+        
         speaker, _ = os.path.splitext(filename)
         speaker, _ = os.path.splitext(speaker)
-
-        speaker_id, utterance_number = speaker.split(HASH_DIVIDER)
-        utterance_number = int(utterance_number)
+        
+        # When loading test_set, there is a folder for _silence_
+        if label == '_silence_':
+            speaker_id = speaker.split(HASH_DIVIDER)
+            utterance_number = -1
+        else:
+            speaker_id, utterance_number = speaker.split(HASH_DIVIDER)
+            utterance_number = int(utterance_number)
 
         # Load audio     
         audio_samples, rate = torchaudio.load(filepath) # loading audio
@@ -149,7 +155,7 @@ def caching_data(_walker, path, subset):
                            audio_samples.shape[1] - SAMPLE_RATE,
                            SAMPLE_RATE//2):
             audio_segment = audio_samples[0, start:start + SAMPLE_RATE]
-            cache.append((audio_segment, rate, name2idx['_silence_'], 'N.A.', 'N.A.'))        
+            cache.append((audio_segment, rate, name2idx['_silence_'], '00000000', -1))        
         
     return cache
 
@@ -188,19 +194,22 @@ class SPEECHCOMMANDS_12C(Dataset):
             + "{'training', 'validation', 'testing'}."
         )
 
-        if url in [
-            "speech_commands_v0.01",
-            "speech_commands_v0.02",
-        ]:
-            base_url = "https://storage.googleapis.com/download.tensorflow.org/data/"
-            ext_archive = ".tar.gz"
+        if subset in ["training", "validation"]:
+            url = "speech_commands_v0.02"
+            
+        elif subset=='testing':
+            url = "speech_commands_test_set_v0.02"
+        
+        base_url = "https://storage.googleapis.com/download.tensorflow.org/data/"
+        ext_archive = ".tar.gz"
 
-            url = os.path.join(base_url, url + ext_archive)
+        url = os.path.join(base_url, url + ext_archive)
 
         # Get string representation of 'root' in case Path object is passed
         root = os.fspath(root)
 
         basename = os.path.basename(url)
+        print(f"{basename=}")
         archive = os.path.join(root, basename)
 
         basename = basename.rsplit(".", 2)[0]
@@ -219,7 +228,8 @@ class SPEECHCOMMANDS_12C(Dataset):
             self._walker = _load_list(self._path, "validation_list.txt")
             self._data = caching_data(self._walker, self._path, subset)            
         elif subset == "testing":
-            self._walker = _load_list(self._path, "testing_list.txt")
+            self._walker = Path(self._path).glob('*/*.wav')
+            self._data = caching_data(self._walker, self._path, subset)
         elif subset == "training":
             excludes = set(_load_list(self._path, "validation_list.txt", "testing_list.txt"))
             walker = sorted(str(p) for p in Path(self._path).glob('*/*.wav'))

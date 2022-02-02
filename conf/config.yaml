@@ -32,7 +32,7 @@ dataset:
         root: ${data_root}
         url: 'speech_commands_v0.02'
         folder_in_archive: 'SpeechCommands'
-        download: False
+        download: True
         subset: 'testing'  
 
 
