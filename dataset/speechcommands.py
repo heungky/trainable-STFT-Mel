@@ -52,6 +52,25 @@ UNKNOWN = [
  'zero'
 ]
 
+name2idx = {
+    'down':0,
+    'go':1,
+    'left':2,
+    'no':3,
+    'off':4,
+    'on':5,
+    'right':6,
+    'stop':7,
+    'up':8,
+    'yes':9,
+    '_silence_':10,
+    '_unknown_':11
+}
+
+idx2name = {}
+for name, idx in name2idx.items():
+    idx2name[idx] = name
+
 def _load_list(root, *filenames):
     output = []
     for filename in filenames:
@@ -90,7 +109,7 @@ def caching_data(_walker, path, subset):
         relpath = os.path.relpath(filepath, path)
         label, filename = os.path.split(relpath)
         if label in UNKNOWN: # if the label is not one of the 10 commands, map them to unknown
-            label = 'unknown'
+            label = '_unknown_'
         
         speaker, _ = os.path.splitext(filename)
         speaker, _ = os.path.splitext(speaker)
@@ -106,7 +125,33 @@ def caching_data(_walker, path, subset):
             pad_length = SAMPLE_RATE-audio_samples.shape[1]
             audio_samples = F.pad(audio_samples, (0,pad_length)) # pad the end of the audio until 1 second
             # (1, 16000)
-        cache.append((audio_samples, rate, label, speaker_id, utterance_number)) 
+        cache.append((audio_samples, rate, name2idx[label], speaker_id, utterance_number)) 
+    
+    
+    # include silence
+    if subset=='training':
+        slience_clips = [
+            'dude_miaowing.wav',
+            'white_noise.wav',
+            'exercise_bike.wav',
+            'doing_the_dishes.wav',
+            'pink_noise.wav'
+        ]
+    elif subset=='validation':
+        slience_clips = [
+            'running_tap.wav'
+        ]
+    else:
+        raise ValueError(f"subset={subset} is not supported.")
+        
+        
+    for i in slience_clips: 
+        audio_samples, rate = torchaudio.load(f'SpeechCommands/speech_commands_v0.02/_background_noise_/{i}')
+        for start in range(0,
+                           audio_samples.shape[1] - SAMPLE_RATE,
+                           SAMPLE_RATE//2):
+            audio_segment = audio_samples[0, start:start + SAMPLE_RATE]
+            cache.append((audio_segment, rate, name2idx['_silence_'], 'N.A.', 'N.A.'))        
         
     return cache
 
