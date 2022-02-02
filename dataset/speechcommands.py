@@ -81,8 +81,6 @@ def _load_list(root, *filenames):
 
 
 def load_speechcommands_item(filepath: str, path: str) -> Tuple[Tensor, int, str, str, int]:
-    print(f"{filepath=}")
-    print(f"{path=}")
     relpath = os.path.relpath(filepath, path)
     label, filename = os.path.split(relpath)
     # Besides the officially supported split method for datasets defined by "validation_list.txt"
@@ -142,11 +140,11 @@ def caching_data(_walker, path, subset):
             'running_tap.wav'
         ]
     else:
-        raise ValueError(f"subset={subset} is not supported.")
+        slience_clips = []
         
         
     for i in slience_clips: 
-        audio_samples, rate = torchaudio.load(f'SpeechCommands/speech_commands_v0.02/_background_noise_/{i}')
+        audio_samples, rate = torchaudio.load(os.path.join(path, '_background_noise_', i))
         for start in range(0,
                            audio_samples.shape[1] - SAMPLE_RATE,
                            SAMPLE_RATE//2):
