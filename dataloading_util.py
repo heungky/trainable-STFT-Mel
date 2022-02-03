@@ -50,17 +50,19 @@ def data_processing(data):
         # str2int = dict
         # str2int[batch[2]] = int
         #torch.Tensor([str2int[batch[2]]]) = tensor
-        label = torch.Tensor([str2int[batch[2]]]) # batch[2] is the label key #str --> int --> tensor
+#         label = torch.Tensor([str2int[batch[2]]]) # batch[2] is the label key #str --> int --> tensor
+        # The new data loader is loading int as labels directly
+        labels.append(batch[2])
         ## print(f"{label=}")
-        labels.append(label)
+        
         
         
     waveform_padded = nn.utils.rnn.pad_sequence(waveforms, batch_first=True)  
-    labels = nn.utils.rnn.pad_sequence(labels, batch_first=True)
+#     labels = nn.utils.rnn.pad_sequence(labels, batch_first=True)
 
     
     output_batch = {'waveforms': waveform_padded, 
-             'labels': labels,
+             'labels': torch.tensor(labels),
              }
     return output_batch
 

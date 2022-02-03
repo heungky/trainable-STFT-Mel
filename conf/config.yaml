@@ -5,6 +5,9 @@ gpus: 1  #[1] = GPU 1
 max_epochs: 200
 check_val_every_n_epoch: 2
 num_sanity_val_steps: 5
+data_root: './'
+
+
 
 defaults:
     - model: BC_ResNet_Fastaudio
@@ -14,22 +17,22 @@ defaults:
 
 dataset:
     train:
-        root: '/workspace/projectA'
+        root: ${data_root}
         url: 'speech_commands_v0.02'
         folder_in_archive: 'SpeechCommands'
-        download: False
+        download: True
         subset: 'training'        
     val:
-        root: '/workspace/projectA'
+        root: ${data_root}
         url: 'speech_commands_v0.02'
         folder_in_archive: 'SpeechCommands'
         download: False
         subset: 'validation'      
     test:
-        root: '/workspace/projectA'
+        root: ${data_root}
         url: 'speech_commands_v0.02'
         folder_in_archive: 'SpeechCommands'
-        download: False
+        download: True
         subset: 'testing'  
 
 

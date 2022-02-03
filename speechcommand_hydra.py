@@ -1,16 +1,17 @@
 import hydra
+from hydra.utils import to_absolute_path
 from omegaconf import DictConfig, OmegaConf
 ##speechcommands cnn
 
 import torch
 import torchaudio 
+from dataset.speechcommands import SPEECHCOMMANDS_12C
 import torch.nn as nn
 import torch.nn.functional as F
 import pandas
 import tqdm
 from torch.nn.utils.rnn import pad_sequence
 import matplotlib.pyplot as plt
-from IPython.display import Audio
 from dataloading_util import data_processing
 import models as Model 
 from pytorch_lightning import Trainer
@@ -24,11 +25,13 @@ from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 def cnn(cfg : DictConfig) -> None:
 #     print(OmegaConf.to_yaml(cfg))
 
+    cfg.data_root = to_absolute_path(cfg.data_root)
+
     batch_size = cfg.batch_size
 
-    trainset = torchaudio.datasets.SPEECHCOMMANDS(**cfg.dataset.train)
-    validset = torchaudio.datasets.SPEECHCOMMANDS(**cfg.dataset.val)
-    testset = torchaudio.datasets.SPEECHCOMMANDS(**cfg.dataset.test)
+    trainset = SPEECHCOMMANDS_12C(**cfg.dataset.train)
+    validset = SPEECHCOMMANDS_12C(**cfg.dataset.val)
+    testset = SPEECHCOMMANDS_12C(**cfg.dataset.test)
 
 
 
@@ -86,6 +89,7 @@ def cnn(cfg : DictConfig) -> None:
     trainer = Trainer(**cfg.trainer, logger = logger, callbacks=callbacks)
 
     trainer.fit(net, trainloader, validloader)
+    trainer.test(net, testloader)
     #added validloader, in order to reach validation_step
 
 
