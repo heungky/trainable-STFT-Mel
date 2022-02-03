@@ -5,6 +5,7 @@ from omegaconf import DictConfig, OmegaConf
 
 import torch
 import torchaudio 
+from dataset.speechcommands import SPEECHCOMMANDS_12C
 import torch.nn as nn
 import torch.nn.functional as F
 import pandas
@@ -28,9 +29,9 @@ def cnn(cfg : DictConfig) -> None:
 
     batch_size = cfg.batch_size
 
-    trainset = torchaudio.datasets.SPEECHCOMMANDS(**cfg.dataset.train)
-    validset = torchaudio.datasets.SPEECHCOMMANDS(**cfg.dataset.val)
-    testset = torchaudio.datasets.SPEECHCOMMANDS(**cfg.dataset.test)
+    trainset = SPEECHCOMMANDS_12C(**cfg.dataset.train)
+    validset = SPEECHCOMMANDS_12C(**cfg.dataset.val)
+    testset = SPEECHCOMMANDS_12C(**cfg.dataset.test)
 
 
 

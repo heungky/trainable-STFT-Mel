@@ -20,7 +20,7 @@ class SpeechCommand(LightningModule):
 #        else:
 #        self.mel_layer.mel_basis.requires_grad = True
         outputs, spec = self(batch['waveforms']) 
-        loss = self.criterion(outputs, batch['labels'].squeeze(1).long())
+        loss = self.criterion(outputs, batch['labels'].long())
 
 #return outputs (2D) for calculate loss, return spec (3D) for visual
 #for debug 
@@ -28,7 +28,7 @@ class SpeechCommand(LightningModule):
 #torch.save(batch['labels'], 'label.pt')          
 #sys.exit()
 
-        acc = sum(outputs.argmax(-1) == batch['labels'].squeeze(1))/outputs.shape[0] #batch wise
+        acc = sum(outputs.argmax(-1) == batch['labels'])/outputs.shape[0] #batch wise
         
         self.log('Train/acc', acc, on_step=False, on_epoch=True)
         #if self.current_epoch==0:
@@ -41,7 +41,7 @@ class SpeechCommand(LightningModule):
     
     def validation_step(self, batch, batch_idx):               
         outputs, spec = self(batch['waveforms'])
-        loss = self.criterion(outputs, batch['labels'].squeeze(1).long())        
+        loss = self.criterion(outputs, batch['labels'].long())        
 #acc = sum(outputs.argmax(-1) == batch['labels'].squeeze(1))/outputs.shape[0]
 #accuracy for 
 #self.log('Validation/acc', acc, on_step=False, on_epoch=True)
@@ -85,7 +85,7 @@ class SpeechCommand(LightningModule):
 #plot log_images for 1st epoch_1st batch
         
         output_dict = {'outputs': outputs,
-                       'labels': batch['labels'].squeeze(1)}        
+                       'labels': batch['labels']}        
         return output_dict
 
     
@@ -103,7 +103,7 @@ class SpeechCommand(LightningModule):
                               
     def test_step(self, batch, batch_idx):               
         outputs, spec = self(batch['waveforms'])
-        loss = self.criterion(outputs, batch['labels'].squeeze(1).long())        
+        loss = self.criterion(outputs, batch['labels'].long())        
 #acc = sum(outputs.argmax(-1) == batch['labels'].squeeze(1))/outputs.shape[0]
 #accuracy for 
 #self.log('Validation/acc', acc, on_step=False, on_epoch=True)
@@ -147,7 +147,7 @@ class SpeechCommand(LightningModule):
 #plot log_images for 1st epoch_1st batch
         
         output_dict = {'outputs': outputs,
-                       'labels': batch['labels'].squeeze(1)}        
+                       'labels': batch['labels']}        
         return output_dict
 
     
