@@ -228,7 +228,7 @@ class SPEECHCOMMANDS_12C(Dataset):
             self._walker = _load_list(self._path, "validation_list.txt")
             self._data = caching_data(self._walker, self._path, subset)            
         elif subset == "testing":
-            self._walker = Path(self._path).glob('*/*.wav')
+            self._walker = list(Path(self._path).glob('*/*.wav'))
             self._data = caching_data(self._walker, self._path, subset)
         elif subset == "training":
             excludes = set(_load_list(self._path, "validation_list.txt", "testing_list.txt"))
