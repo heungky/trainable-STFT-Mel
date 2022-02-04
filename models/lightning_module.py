@@ -11,6 +11,10 @@ import matplotlib.pyplot as plt
 from torch import Tensor
 from torch.optim.lr_scheduler import LambdaLR
 from cosine_annealing_warmup import CosineAnnealingWarmupRestarts
+from sklearn.metrics import precision_recall_fscore_support
+from matplotlib.ticker import (MultipleLocator, AutoMinorLocator)
+from sklearn.metrics import precision_recall_fscore_support
+from dataset.speechcommands import idx2name
 
 
 class SpeechCommand(LightningModule):
@@ -159,8 +163,29 @@ class SpeechCommand(LightningModule):
             label.append(output['labels'])
         label = torch.cat(label, 0)
         pred = torch.cat(pred, 0)
+        
+        result_dict = {}
+        for key in [None, 'micro', 'macro', 'weighted']:
+            result_dict[key] = {}
+            p, r, f1, _ = precision_recall_fscore_support(label.cpu(), pred.argmax(-1).cpu(), average=key, zero_division=0)
+            result_dict[key]['precision'] = p
+            result_dict[key]['recall'] = r
+            result_dict[key]['f1'] = f1
+            
+        barplot(result_dict, 'precision')
+        barplot(result_dict, 'recall')
+        barplot(result_dict, 'f1')
+            
         acc = sum(pred.argmax(-1) == label)/label.shape[0]
-        self.log('Test/acc', acc, on_step=False, on_epoch=True)        
+        self.log('Test/acc', acc, on_step=False, on_epoch=True)
+        
+        self.log('Test/micro_f1', result_dict['micro']['f1'], on_step=False, on_epoch=True)
+        self.log('Test/macro_f1', result_dict['macro']['f1'], on_step=False, on_epoch=True)
+        self.log('Test/weighted_f1', result_dict['weighted']['f1'], on_step=False, on_epoch=True)
+        
+        torch.save(result_dict, "result_dict.pt")        
+        
+        return result_dict
         
     def log_images(self, tensors, key):
         fig, axes = plt.subplots(2,2, figsize=(12,5), dpi=100)
@@ -170,7 +195,6 @@ class SpeechCommand(LightningModule):
         self.logger.experiment.add_figure(f"{key}", fig, global_step=self.current_epoch)
         plt.close(fig)
 #plot images in TensorBoard        
-          
     
     
     def configure_optimizers(self):
@@ -230,4 +254,25 @@ class SpeechCommand(LightningModule):
 #if use constant learning rate: no cosineannealing --> exclude out the scheduler2 return
 
 
-    
+def barplot(result_dict, title, figsize=(4,12), minor_interval=0.2, log=False):
+    fig, ax = plt.subplots(1,1, figsize=figsize)
+    metric = {}
+    for idx, item in enumerate(result_dict[None][title]):
+        metric[idx2name[idx]] = item
+    xlabels = list(metric.keys())
+    values = list(metric.values())
+    if log:
+        values = np.log(values)
+    ax.barh(xlabels, values)
+    ax.tick_params(labeltop=True, labelright=False)
+    ax.xaxis.grid(True, which='minor')
+    ax.xaxis.set_minor_locator(MultipleLocator(minor_interval))
+    ax.set_ylim([-1,len(xlabels)])
+    ax.set_title(title)
+    ax.grid(axis='x')
+    ax.grid(b=True, which='minor', linestyle='--')
+    fig.savefig(f'{title}.png', bbox_inches='tight')
+    fig.tight_layout() # prevent edge from missing
+#         fig.set_tight_layout(True)
+    return fig
+          
