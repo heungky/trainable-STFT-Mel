@@ -40,7 +40,7 @@ class BCResNet(SpeechCommand):
 
         self.conv2 = nn.Conv2d(20, 20, 5, groups=20, padding=(0, 2))
         self.conv3 = nn.Conv2d(20, 32, 1, bias=False)
-        self.conv4 = nn.Conv2d(32, 35, 1, bias=False)
+        self.conv4 = nn.Conv2d(32, 12, 1, bias=False)
                 
         self.mel_layer = MelSpectrogram(**cfg_model.spec_args)
         self.criterion = nn.CrossEntropyLoss()
