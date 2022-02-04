@@ -113,6 +113,14 @@ class SpeechCommand(LightningModule):
         label = torch.cat(label, 0)
         pred = torch.cat(pred, 0)
         acc = sum(pred.argmax(-1) == label)/label.shape[0]
+        
+        cm = plot_confusion_matrix(label.cpu(),
+                                   pred.argmax(-1).cpu(),
+                                   name2idx.keys(),
+                                   title='Validation: Confusion matrix',
+                                   normalize=False)
+        self.logger.experiment.add_figure('Validation/confusion_maxtrix', cm, global_step=self.current_epoch)
+        
         self.log('Validation/acc', acc, on_step=False, on_epoch=True)    
 #use the return value from validation_step: output_dict , to calculate the overall accuracy   #epoch wise 
                               
@@ -193,6 +201,13 @@ class SpeechCommand(LightningModule):
         self.log('Test/micro_f1', result_dict['micro']['f1'], on_step=False, on_epoch=True)
         self.log('Test/macro_f1', result_dict['macro']['f1'], on_step=False, on_epoch=True)
         self.log('Test/weighted_f1', result_dict['weighted']['f1'], on_step=False, on_epoch=True)
+        
+        cm = plot_confusion_matrix(label.cpu(),
+                                   pred.argmax(-1).cpu(),
+                                   name2idx.keys(),
+                                   title='Test: Confusion matrix',
+                                   normalize=False)
+        self.logger.experiment.add_figure('Test/confusion_maxtrix', cm, global_step=self.current_epoch)        
         
         torch.save(result_dict, "result_dict.pt")        
         
