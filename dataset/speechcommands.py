@@ -155,7 +155,7 @@ def caching_data(_walker, path, subset):
                            audio_samples.shape[1] - SAMPLE_RATE,
                            SAMPLE_RATE//2):
             audio_segment = audio_samples[0, start:start + SAMPLE_RATE]
-            cache.append((audio_segment, rate, name2idx['_silence_'], '00000000', -1))        
+            cache.append((audio_segment.unsqueeze(0), rate, name2idx['_silence_'], '00000000', -1))        
         
     return cache
 
