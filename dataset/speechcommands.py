@@ -259,4 +259,4 @@ class SPEECHCOMMANDS_12C(Dataset):
 
 
     def __len__(self) -> int:
-        return len(self._walker)
+        return len(self._data)
