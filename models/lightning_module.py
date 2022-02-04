@@ -323,7 +323,7 @@ def plot_confusion_matrix(correct_labels,
         - Depending on the number of category and the data , you may have to modify the figzie, font sizes etc. 
         - Currently, some of the ticks dont line up due to rotations.
     '''
-    cm = confusion_matrix(correct_labels, predict_labels)
+    cm = confusion_matrix(correct_labels, predict_labels, labels=range(len(labels)))
     if normalize:
         cm = cm.astype('float')*10 / cm.sum(axis=1)[:, np.newaxis]
         cm = np.nan_to_num(cm, copy=True)
