@@ -19,7 +19,7 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from datetime import datetime
 from torch import Tensor
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
-
+from torch.utils.data import WeightedRandomSampler,DataLoader
 
 @hydra.main(config_path="conf", config_name="config")
 def cnn(cfg : DictConfig) -> None:
@@ -33,18 +33,31 @@ def cnn(cfg : DictConfig) -> None:
     validset = SPEECHCOMMANDS_12C(**cfg.dataset.val)
     testset = SPEECHCOMMANDS_12C(**cfg.dataset.test)
 
+    # for class weighting, rebalancing silence and unknown class in training set
+    class_weights = [1,1,1,1,1,1,1,1,1,1,4.6,1/17]
+    sample_weights = [0] * len(trainset)
+    #create a list as per length of trainset
 
+    for idx, (data,rate,label,speaker_id, _) in enumerate(trainset):
+        class_weight = class_weights[label]
+        sample_weights[idx] = class_weight
+    #apply sample_weights in each data base on their label class in class_weight
+    #ref: https://www.youtube.com/watch?v=4JFVhJyTZ44&t=518s
+    sampler = WeightedRandomSampler(sample_weights, num_samples=len(sample_weights),replacement=True)
+     
 
-    trainloader = torch.utils.data.DataLoader(trainset,                                
+        
+        
+    trainloader = DataLoader(trainset,                                
                                   collate_fn=lambda x: data_processing(x),
-                                             **cfg.dataloader.train)
+                                             **cfg.dataloader.train,sampler=sampler)
 
     #speech_command_transform = Speech_Command_label_Transform(trainset)
-    validloader = torch.utils.data.DataLoader(validset,                               
+    validloader = DataLoader(validset,                               
                                   collate_fn=lambda x: data_processing(x),
                                              **cfg.dataloader.val)
     
-    testloader = torch.utils.data.DataLoader(testset,   
+    testloader = DataLoader(testset,   
                                   collate_fn=lambda x: data_processing(x),
                                             **cfg.dataloader.test)
 

@@ -39,7 +39,8 @@ dataset:
 dataloader:
        train: 
            batch_size: ${batch_size}
-           shuffle: True
+#           shuffle: True
+#if use data balancing, cannot use shuffle
        val:
            batch_size: ${batch_size}
            
