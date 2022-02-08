@@ -1,0 +1,43 @@
+model_type: 'Linearmodel_Fastaudio'
+spec_args:
+    sr: 16000 
+    n_fft: 480
+    win_length: null
+    hop_length: 160
+    window: 'hann'
+    center: True
+    pad_mode: 'reflect'
+    trainable: False
+    verbose: True
+    output_format: 'Magnitude'
+    
+#exp on p8/2/22ower = 1 & 2
+fastaudio:
+    n_mels: 10
+    log_mel: True
+    filter_shape: 'triangular'
+    f_min: 0
+    f_max: 8000
+    n_fft: ${model.spec_args.n_fft}
+    sample_rate: 16000
+    power_spectrogram: 2
+    amin: 1e-10
+    ref_value: 1.0
+    top_db: 80.0
+    param_change_factor: 1.0
+    param_rand_factor: 0.0
+    freeze: False
+    sort: False
+    
+optimizer:
+    warmup: 'constant'
+#warmup: cosine / constant    
+
+#param_change_factor: bool
+# If freeze=False, this parameter affects the speed at which the filter
+# parameters (i.e., central_freqs and bands) can be changed.  When high
+# (e.g., param_change_factor=1) the filters change a lot during training.
+# When low (e.g. param_change_factor=0.1) the filter parameters are more
+# stable during training    
+#nnAudio feature: trainable_mel =  True 
+

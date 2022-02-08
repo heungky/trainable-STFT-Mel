@@ -120,3 +120,44 @@ class BCResNet_Fastaudio(SpeechCommand):
         spec = spec.squeeze(1)
 
         return out, spec   
+    
+    
+    
+class Linearmodel_Fastaudio(SpeechCommand):
+    def __init__(self, no_output_chan, cfg_model): 
+        super().__init__()
+        self.mel_layer = STFT(**cfg_model.spec_args)
+        self.fastaudio_filter = Filterbank(**cfg_model.fastaudio)
+        self.optimizer_cfg = cfg_model.optimizer
+        
+        self.criterion = nn.CrossEntropyLoss()
+        self.cfg_model = cfg_model
+        self.linearlayer = nn.Linear(self.cfg_model.fastaudio.n_mels*101, 12)
+#linearlayer = nn.Linear(input size[n_mels*T], output size)
+            
+    def forward(self, x): 
+        
+#        print(f'x shape= {x.shape}')
+        stft_output =  self.mel_layer(x)  #from 2D [B, 16000] to 3D [B, F241, T101]
+#        print(f'stft_output shape= {stft_output.shape}') #([100, 241, 101])
+              
+        output = self.fastaudio_filter(stft_output.transpose(-1,-2)) 
+#        print(f'output shape ={output.shape}')   #[100, 101, 40])    
+        #from [B, F, T] to [B,T, F], use fastaudio process stft spectrogram
+        #bcoz stft_output [201, 161], [F, T]
+        #size of fbank_matrix is 201x40 [F, n_filters]
+        
+        
+        flatten_spec = torch.flatten( output, start_dim=1) 
+        #from 3D [B, T, F] to 2D [B, T*F] 
+        #start_dim: flattening start from 1st dimention
+        
+        out = self.linearlayer(flatten_spec) #2D [B,number of class] 
+                                
+        return out, output   
+    
+##raw waveform 2D [B, 16000] -> mel-layer 3D [B, F241, T101] -> fastaudio filter [B, F40, T101] -> .transpose() [B, T101, F40] -> flatten 2D [B, 101*40] -> linear model instead of convolution [multiply by n_mels*101, output 12 class]
+
+
+
+
