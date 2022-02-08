@@ -64,42 +64,47 @@ class BCResNet(SpeechCommand):
 #after self.mel_layer(x) --> 3D [B,F,T]
 #after spec.unsqueeze(1) --> 4D bcoz conv1 need 4D [B,1,F,T]
 
-#        print('INPUT SHAPE:', x.shape)
+        print('INPUT SHAPE:', x.shape)
+        print('INPUT spec SHAPE:', spec.shape)
         out = self.conv1(spec)
 
-#        print('BLOCK1 INPUT SHAPE:', out.shape)
+        print('BLOCK1 INPUT SHAPE:', out.shape)
         out = self.block1_1(out)
         out = self.block1_2(out)
 
-#        print('BLOCK2 INPUT SHAPE:', out.shape)
+        print('BLOCK2 INPUT SHAPE:', out.shape)
+
         out = self.block2_1(out)
+        
+        print('middle BLOCK2 INPUT SHAPE:', out.shape)
+        
         out = self.block2_2(out)
 
-#        print('BLOCK3 INPUT SHAPE:', out.shape)
+        print('BLOCK3 INPUT SHAPE:', out.shape)
         out = self.block3_1(out)
         out = self.block3_2(out)
         out = self.block3_3(out)
         out = self.block3_4(out)
 
-#        print('BLOCK4 INPUT SHAPE:', out.shape)
+        print('BLOCK4 INPUT SHAPE:', out.shape)
         out = self.block4_1(out)
         out = self.block4_2(out)
         out = self.block4_3(out)
         out = self.block4_4(out)
 
-#        print('Conv2 INPUT SHAPE:', out.shape)
+        print('Conv2 INPUT SHAPE:', out.shape)
         out = self.conv2(out)
 
-#        print('Conv3 INPUT SHAPE:', out.shape)
+        print('Conv3 INPUT SHAPE:', out.shape)
         out = self.conv3(out)
         out = out.mean(-1, keepdim=True)
 
-#        print('Conv4 INPUT SHAPE:', out.shape)
+        print('Conv4 INPUT SHAPE:', out.shape)
         out = self.conv4(out)   #4D
         out = out.squeeze(2).squeeze(2)  #2D
         spec = spec.squeeze(1)
 
-#        print('OUTPUT SHAPE:', out.shape)
+        print('OUTPUT SHAPE:', out.shape)
 #        OUTPUT SHAPE: torch.Size([8, 35, 1, 1])  out
 
 #crossentropy expect[B, C], so need to squeeze to be 2 dimension
@@ -207,3 +212,46 @@ class BCResNet_exp(SpeechCommand):
         spec = spec.squeeze(1)
 
         return out, spec
+    
+    
+class Linearmodel(SpeechCommand):
+    def __init__(self, no_output_chan, cfg_model): 
+        super().__init__()
+        self.fastaudio_filter = None
+        self.optimizer_cfg = cfg_model.optimizer
+        self.mel_layer = MelSpectrogram(**cfg_model.spec_args)
+        
+        self.criterion = nn.CrossEntropyLoss()
+        self.cfg_model = cfg_model
+        self.linearlayer = nn.Linear(self.cfg_model.spec_args.n_mels*101, 12)
+#linearlayer = nn.Linear(input size[n_mels*T], output size)
+            
+    def forward(self, x): 
+        spec = self.mel_layer(x)  #from 2D [B, 16000] to 3D [B, F40, T101]
+        spec = torch.log(spec+1e-10)
+        flatten_spec = torch.flatten(spec, start_dim=1) 
+        #from 3D [B, F, T] to 2D [B, F*T 40*101] 
+        #start_dim: flattening start from 1st dimention
+        out = self.linearlayer(flatten_spec) #2D [B,number of class] 
+                               
+        return out, spec               
+                        
+                              
+#raw waveform 2D [B, 16000] -> mel-layer 3D [B, F40, T101] -> spec -> 
+#flatten 2D [B, F*T 40*101] -> linear model instead of convolution [multiply by n_mels*101, output 12 class]
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
