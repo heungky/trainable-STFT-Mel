@@ -14,6 +14,7 @@ from cosine_annealing_warmup import CosineAnnealingWarmupRestarts
 from models.custom_model import Filterbank #use for fastaudio model 
 from .utils import SubSpectralNorm, BroadcastedBlock, TransitionBlock
 from .lightning_module import SpeechCommand
+from speechbrain.processing.features import InputNormalization
 
 class BCResNet_Fastaudio(SpeechCommand):
     def __init__(self, no_output_chan, cfg_model):
@@ -50,6 +51,9 @@ class BCResNet_Fastaudio(SpeechCommand):
         
 
         self.criterion = nn.CrossEntropyLoss()
+        self.norm = InputNormalization()
+#         self.norm.to('cuda:0')
+
         
 #self.mel_layer use in validation step for [mel_filter_banks = self.mel_layer.mel_basis]
 #self.criterion use in traning & validation step
@@ -60,18 +64,20 @@ class BCResNet_Fastaudio(SpeechCommand):
         
         
         stft_output =  self.mel_layer(x) #3D [B, F, T]
-        torch.save(stft_output, './stft_output.pt') 
 #         print(f'{stft_output.max()=}')
 #         print(f'{stft_output.min()=}')
-        output = self.fastaudio_filter(stft_output.transpose(-1,-2))                
         
-        
+        output = self.fastaudio_filter(stft_output.transpose(-1,-2))                        
+        batch_size = torch.ones([output.shape[0]]).to(output.device)                
+
+        self.norm.to(output.device)
+        output = self.norm(output, batch_size)
+                
         
         #[B,T F], use fastaudio process stft spectrogram
         #bcoz stft_output [201, 161], [F, T]
         #size of fbank_matrix is 201x40 [F, n_filters]
 #         torch.save(stft_output, './stft_output.pt')
-        torch.save(output, './output.pt')
 #        print(f'{output.max()=}')
 #        print(f'{output.min()=}')
         
@@ -133,6 +139,7 @@ class Linearmodel_Fastaudio(SpeechCommand):
         self.criterion = nn.CrossEntropyLoss()
         self.cfg_model = cfg_model
         self.linearlayer = nn.Linear(self.cfg_model.fastaudio.n_mels*101, 12)
+        
 #linearlayer = nn.Linear(input size[n_mels*T], output size)
             
     def forward(self, x): 
@@ -147,6 +154,7 @@ class Linearmodel_Fastaudio(SpeechCommand):
         #bcoz stft_output [201, 161], [F, T]
         #size of fbank_matrix is 201x40 [F, n_filters]
         
+
         
         flatten_spec = torch.flatten( output, start_dim=1) 
         #from 3D [B, T, F] to 2D [B, T*F] 
