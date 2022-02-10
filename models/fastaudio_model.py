@@ -67,12 +67,16 @@ class BCResNet_Fastaudio(SpeechCommand):
 #         print(f'{stft_output.max()=}')
 #         print(f'{stft_output.min()=}')
         
+        
         output = self.fastaudio_filter(stft_output.transpose(-1,-2))                        
-        batch_size = torch.ones([output.shape[0]]).to(output.device)                
 
+     
+        batch_size = torch.ones([output.shape[0]]).to(output.device)                
         self.norm.to(output.device)
         output = self.norm(output, batch_size)
-                
+
+
+        #for nomalization        
         
         #[B,T F], use fastaudio process stft spectrogram
         #bcoz stft_output [201, 161], [F, T]
@@ -140,6 +144,9 @@ class Linearmodel_Fastaudio(SpeechCommand):
         self.cfg_model = cfg_model
         self.linearlayer = nn.Linear(self.cfg_model.fastaudio.n_mels*101, 12)
         
+       
+        self.norm = InputNormalization()
+        
 #linearlayer = nn.Linear(input size[n_mels*T], output size)
             
     def forward(self, x): 
@@ -154,7 +161,9 @@ class Linearmodel_Fastaudio(SpeechCommand):
         #bcoz stft_output [201, 161], [F, T]
         #size of fbank_matrix is 201x40 [F, n_filters]
         
-
+        batch_size = torch.ones([output.shape[0]]).to(output.device)                
+        self.norm.to(output.device)
+        output = self.norm(output, batch_size)
         
         flatten_spec = torch.flatten( output, start_dim=1) 
         #from 3D [B, T, F] to 2D [B, T*F] 
