@@ -14,6 +14,7 @@ from cosine_annealing_warmup import CosineAnnealingWarmupRestarts
 from models.custom_model import Filterbank #use for fastaudio model 
 from .utils import SubSpectralNorm, BroadcastedBlock, TransitionBlock
 from .lightning_module import SpeechCommand
+from speechbrain.processing.features import InputNormalization
 
 class BCResNet(SpeechCommand):
     def __init__(self, no_output_chan, cfg_model): 
@@ -43,10 +44,12 @@ class BCResNet(SpeechCommand):
         self.conv4 = nn.Conv2d(32, 12, 1, bias=False)
                 
         self.mel_layer = MelSpectrogram(**cfg_model.spec_args)
-        self.criterion = nn.CrossEntropyLoss()
-        
+        self.criterion = nn.CrossEntropyLoss()        
         #self.mel_layer use in validation step for [mel_filter_banks = self.mel_layer.mel_basis]
         #self.criterion use in traning & validation step
+        
+#         self.norm = InputNormalization()
+        #for normalization
         
     def forward(self, x):        
         # x [Batch_size,16000]
@@ -58,53 +61,67 @@ class BCResNet(SpeechCommand):
         
         #spec = torch.relu(spec)
         
-        spec = torch.log(spec+1e-10)
+        spec = torch.log(spec+1e-10) 
+        
+#         batch_size = torch.ones([spec.shape[0]]).to(spec.device)                
+#         self.norm.to(spec.device)
+#         spec = self.norm(spec, batch_size)
+#for normalization
+        
         spec = spec.unsqueeze(1)
 #x is training_step_batch['waveforms' [B,16000]
 #after self.mel_layer(x) --> 3D [B,F,T]
 #after spec.unsqueeze(1) --> 4D bcoz conv1 need 4D [B,1,F,T]
+        
 
-        print('INPUT SHAPE:', x.shape)
-        print('INPUT spec SHAPE:', spec.shape)
+
+        
+
+
+
+
+
+#         print('INPUT SHAPE:', x.shape)
+#         print('INPUT spec SHAPE:', spec.shape)
         out = self.conv1(spec)
 
-        print('BLOCK1 INPUT SHAPE:', out.shape)
+#        print('BLOCK1 INPUT SHAPE:', out.shape)
         out = self.block1_1(out)
         out = self.block1_2(out)
 
-        print('BLOCK2 INPUT SHAPE:', out.shape)
+#         print('BLOCK2 INPUT SHAPE:', out.shape)
 
         out = self.block2_1(out)
         
-        print('middle BLOCK2 INPUT SHAPE:', out.shape)
+#         print('middle BLOCK2 INPUT SHAPE:', out.shape)
         
         out = self.block2_2(out)
 
-        print('BLOCK3 INPUT SHAPE:', out.shape)
+#         print('BLOCK3 INPUT SHAPE:', out.shape)
         out = self.block3_1(out)
         out = self.block3_2(out)
         out = self.block3_3(out)
         out = self.block3_4(out)
 
-        print('BLOCK4 INPUT SHAPE:', out.shape)
+#         print('BLOCK4 INPUT SHAPE:', out.shape)
         out = self.block4_1(out)
         out = self.block4_2(out)
         out = self.block4_3(out)
         out = self.block4_4(out)
 
-        print('Conv2 INPUT SHAPE:', out.shape)
+#         print('Conv2 INPUT SHAPE:', out.shape)
         out = self.conv2(out)
 
-        print('Conv3 INPUT SHAPE:', out.shape)
+#         print('Conv3 INPUT SHAPE:', out.shape)
         out = self.conv3(out)
         out = out.mean(-1, keepdim=True)
 
-        print('Conv4 INPUT SHAPE:', out.shape)
+#         print('Conv4 INPUT SHAPE:', out.shape)
         out = self.conv4(out)   #4D
         out = out.squeeze(2).squeeze(2)  #2D
         spec = spec.squeeze(1)
 
-        print('OUTPUT SHAPE:', out.shape)
+#         print('OUTPUT SHAPE:', out.shape)
 #        OUTPUT SHAPE: torch.Size([8, 35, 1, 1])  out
 
 #crossentropy expect[B, C], so need to squeeze to be 2 dimension
@@ -176,6 +193,8 @@ class BCResNet_exp(SpeechCommand):
 #after self.mel_layer(x) --> 3D [B,F,T]
 #after spec.unsqueeze(1) --> 4D bcoz conv1 need 4D [B,1,F,T]
 
+
+        
 #        print('INPUT SHAPE:', x.shape)
         out = self.conv1(spec)
 
