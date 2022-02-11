@@ -232,11 +232,11 @@ class SpeechCommand(LightningModule):
                 model_param.append(params)          
         optimizer = optim.SGD([
                                 {"params": self.mel_layer.parameters(),
-                                 "lr": 1e-5,
+                                 "lr": 1e-4,
                                  "momentum": 0.9,
                                  "weight_decay": 0.001},
                                 {"params": model_param,
-                                 "lr": 1e-3,
+                                 "lr": 1e-4,
                                  "momentum": 0.9,
                                  "weight_decay": 0.001}            
                               ])
