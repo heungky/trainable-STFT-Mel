@@ -13,7 +13,7 @@ from torch.optim.lr_scheduler import LambdaLR
 from cosine_annealing_warmup import CosineAnnealingWarmupRestarts
 from models.custom_model import Filterbank #use for fastaudio model 
 from .utils import SubSpectralNorm, BroadcastedBlock, TransitionBlock
-from .lightning_module import SpeechCommand
+from tasks.speechcommand import SpeechCommand
 from speechbrain.processing.features import InputNormalization
 
 class BCResNet_Fastaudio(SpeechCommand):
@@ -51,7 +51,7 @@ class BCResNet_Fastaudio(SpeechCommand):
         
 
         self.criterion = nn.CrossEntropyLoss()
-        self.norm = InputNormalization()
+#         self.norm = InputNormalization()
 #         self.norm.to('cuda:0')
 
         
@@ -69,11 +69,9 @@ class BCResNet_Fastaudio(SpeechCommand):
         
         
         output = self.fastaudio_filter(stft_output.transpose(-1,-2))                        
-
-     
-        batch_size = torch.ones([output.shape[0]]).to(output.device)                
-        self.norm.to(output.device)
-        output = self.norm(output, batch_size)
+#         batch_size = torch.ones([output.shape[0]]).to(output.device)                
+#         self.norm.to(output.device)
+#         output = self.norm(output, batch_size)
 
 
         #for nomalization        
@@ -144,8 +142,7 @@ class Linearmodel_Fastaudio(SpeechCommand):
         self.cfg_model = cfg_model
         self.linearlayer = nn.Linear(self.cfg_model.fastaudio.n_mels*101, 12)
         
-       
-        self.norm = InputNormalization()
+#         self.norm = InputNormalization()
         
 #linearlayer = nn.Linear(input size[n_mels*T], output size)
             
@@ -161,10 +158,13 @@ class Linearmodel_Fastaudio(SpeechCommand):
         #bcoz stft_output [201, 161], [F, T]
         #size of fbank_matrix is 201x40 [F, n_filters]
         
-        batch_size = torch.ones([output.shape[0]]).to(output.device)                
-        self.norm.to(output.device)
-        output = self.norm(output, batch_size)
-        
+#         batch_size = torch.ones([output.shape[0]]).to(output.device)                
+#         self.norm.to(output.device)
+#         output = self.norm(output, batch_size)
+#for normalization
+
+        output = output.transpose(1,2)
+    
         flatten_spec = torch.flatten( output, start_dim=1) 
         #from 3D [B, T, F] to 2D [B, T*F] 
         #start_dim: flattening start from 1st dimention

@@ -2,7 +2,7 @@ import torch.nn as nn
 from models.tdnn import TDNN
 import torch
 import torch.nn.functional as F
-from .lightning_module import SpeechCommand
+from tasks.speechcommand import SpeechCommand
 import sys
 sys.path.insert(0, './package/Installation/')
 from nnAudio.features.mel import MelSpectrogram, STFT, MFCC

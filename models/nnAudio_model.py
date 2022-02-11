@@ -13,7 +13,7 @@ from torch.optim.lr_scheduler import LambdaLR
 from cosine_annealing_warmup import CosineAnnealingWarmupRestarts
 from models.custom_model import Filterbank #use for fastaudio model 
 from .utils import SubSpectralNorm, BroadcastedBlock, TransitionBlock
-from .lightning_module import SpeechCommand
+from tasks.speechcommand import SpeechCommand
 from speechbrain.processing.features import InputNormalization
 
 class BCResNet(SpeechCommand):
@@ -72,13 +72,6 @@ class BCResNet(SpeechCommand):
 #x is training_step_batch['waveforms' [B,16000]
 #after self.mel_layer(x) --> 3D [B,F,T]
 #after spec.unsqueeze(1) --> 4D bcoz conv1 need 4D [B,1,F,T]
-        
-
-
-        
-
-
-
 
 
 #         print('INPUT SHAPE:', x.shape)
