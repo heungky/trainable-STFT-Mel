@@ -73,6 +73,7 @@ def cnn(cfg : DictConfig) -> None:
     if cfg.model.model_type=='X_vector':
         net = getattr(Model, cfg.model.model_type)(**cfg.model.args, cfg_model=cfg.model)        
     else:
+        print(f'cfg.model ={cfg.model.keys()}')
         net = getattr(Model, cfg.model.model_type)(cfg.model)
     # net = net.to(gpus)
     
@@ -101,7 +102,7 @@ def cnn(cfg : DictConfig) -> None:
             #optimizer.step()
 
     #now = datetime.now()        
-    logger = TensorBoardLogger(save_dir=".", version=1, name=f'SGD-{cfg.model.model_type}-bz={cfg.batch_size}')
+    logger = TensorBoardLogger(save_dir=".", version=1, name=f'SGD-{cfg.model.model_type}-speechcommand-bz={cfg.batch_size}')
     
     lr_monitor = LearningRateMonitor(logging_interval='step')
     checkpoint_callback = ModelCheckpoint(**cfg.checkpoint,
