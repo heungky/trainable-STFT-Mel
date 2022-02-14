@@ -17,11 +17,12 @@ from tasks.speechcommand import SpeechCommand
 from speechbrain.processing.features import InputNormalization
 
 class BCResNet(SpeechCommand):
-    def __init__(self, no_output_chan, cfg_model): 
+    def __init__(self,cfg_model): 
         #in main script, will pass no_output_chan, cfg_spec to model
         super().__init__()
         self.fastaudio_filter = None
         self.optimizer_cfg = cfg_model.optimizer
+        self.cfg_model = cfg_model
         self.conv1 = nn.Conv2d(1, 16, 5, stride=(2, 1), padding=(2, 2))
         self.block1_1 = TransitionBlock(16, 8)
         self.block1_2 = BroadcastedBlock(8)
@@ -41,7 +42,7 @@ class BCResNet(SpeechCommand):
 
         self.conv2 = nn.Conv2d(20, 20, 5, groups=20, padding=(0, 2))
         self.conv3 = nn.Conv2d(20, 32, 1, bias=False)
-        self.conv4 = nn.Conv2d(32,  12, 1, bias=False)
+        self.conv4 = nn.Conv2d(32,  self.cfg_model.args.output_dim, 1, bias=False)
                 
         self.mel_layer = MelSpectrogram(**cfg_model.spec_args)
         self.criterion = nn.CrossEntropyLoss()        

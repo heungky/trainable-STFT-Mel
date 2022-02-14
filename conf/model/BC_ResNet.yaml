@@ -19,4 +19,9 @@ spec_args:
 #nnAudio feature: trainable_mel =  True 
 
 optimizer:
-    warmup: 'cosine'
+    warmup: 'constant'
+#cosine or constant
+
+args:
+    input_dim: 0 #will be calculate in main script, base on n_mel
+    output_dim: 12
