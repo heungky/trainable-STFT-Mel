@@ -1,4 +1,4 @@
-model_type: 'Linearmodel'
+model_type: 'Linearmodel_nnAudio'
 spec_args:
     sr: 16000 
     n_fft: 480

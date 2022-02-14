@@ -1,4 +1,4 @@
-model_type: 'BCResNet'
+model_type: 'BCResNet_nnAudio'
 spec_args:
     sr: 16000 
     n_fft: 480

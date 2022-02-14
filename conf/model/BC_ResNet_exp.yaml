@@ -1,4 +1,4 @@
-model_type: 'BCResNet_exp'
+model_type: 'BCResNet_exp_nnAudio'
 #follow the class name 
 spec_args:
     sr: 16000 
