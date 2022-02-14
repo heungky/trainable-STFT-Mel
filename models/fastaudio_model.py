@@ -17,7 +17,7 @@ from tasks.speechcommand import SpeechCommand
 from speechbrain.processing.features import InputNormalization
 
 class BCResNet_Fastaudio(SpeechCommand):
-    def __init__(self, no_output_chan, cfg_model):
+    def __init__(self, cfg_model):
         super().__init__()        
         self.mel_layer = STFT(**cfg_model.spec_args)   
         #STFT from nnAudio.features.stft
@@ -132,7 +132,7 @@ class BCResNet_Fastaudio(SpeechCommand):
     
     
 class Linearmodel_Fastaudio(SpeechCommand):
-    def __init__(self, no_output_chan, cfg_model): 
+    def __init__(self,cfg_model): 
         super().__init__()
         self.mel_layer = STFT(**cfg_model.spec_args)
         self.fastaudio_filter = Filterbank(**cfg_model.fastaudio)
@@ -140,7 +140,7 @@ class Linearmodel_Fastaudio(SpeechCommand):
         
         self.criterion = nn.CrossEntropyLoss()
         self.cfg_model = cfg_model
-        self.linearlayer = nn.Linear(self.cfg_model.fastaudio.n_mels*101, 12)
+        self.linearlayer = nn.Linear(self.cfg_model.args.input_dim, self.cfg_model.args.output_dim)
         
 #         self.norm = InputNormalization()
         

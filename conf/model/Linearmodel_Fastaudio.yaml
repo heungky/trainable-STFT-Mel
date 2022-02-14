@@ -31,7 +31,11 @@ fastaudio:
     
 optimizer:
     warmup: 'constant'
-#warmup: cosine / constant    
+#warmup: cosine / constant  
+
+args:
+    input_dim: 0 #will be calculate in main script, base on n_mel
+    output_dim: 12
 
 #param_change_factor: bool
 # If freeze=False, this parameter affects the speed at which the filter
