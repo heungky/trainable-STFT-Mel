@@ -27,6 +27,7 @@ class BCResNet_Fastaudio(SpeechCommand):
        
         self.fastaudio_filter = Filterbank(**cfg_model.fastaudio)
         self.optimizer_cfg = cfg_model.optimizer
+        self.cfg_model = cfg_model
                 
         self.conv1 = nn.Conv2d(1, 16, 5, stride=(2, 1), padding=(2, 2))
         self.block1_1 = TransitionBlock(16, 8)
@@ -47,7 +48,7 @@ class BCResNet_Fastaudio(SpeechCommand):
 
         self.conv2 = nn.Conv2d(20, 20, 5, groups=20, padding=(0, 2))
         self.conv3 = nn.Conv2d(20, 32, 1, bias=False)
-        self.conv4 = nn.Conv2d(32, 35, 1, bias=False)
+        self.conv4 = nn.Conv2d(32, self.cfg_model.args.output_dim, 1, bias=False)
         
 
         self.criterion = nn.CrossEntropyLoss()
