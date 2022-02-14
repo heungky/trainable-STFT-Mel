@@ -20,8 +20,9 @@ from datetime import datetime
 from torch import Tensor
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from torch.utils.data import WeightedRandomSampler,DataLoader
+from nnAudio import Spectrogram
 
-@hydra.main(config_path="conf", config_name="config")
+@hydra.main(config_path="conf", config_name="speechcommand_config")
 def cnn(cfg : DictConfig) -> None:
 #     print(OmegaConf.to_yaml(cfg))
 
@@ -61,13 +62,22 @@ def cnn(cfg : DictConfig) -> None:
                                   collate_fn=lambda x: data_processing(x),
                                             **cfg.dataloader.test)
 
-
+    
+    if cfg.spec_layer.type=='STFT':
+            cfg.model.args.input_dim = (cfg.model.spec_args.n_fft//2+1) *101
+    elif cfg.spec_layer.type=='MelSpectrogram':
+            cfg.model.args.input_dim = cfg.model.spec_args.n_mels *101 
+            
     #for dataloader, trainset need shuffle
     if cfg.model.model_type=='X_vector':
         net = getattr(Model, cfg.model.model_type)(**cfg.model.args, cfg_model=cfg.model)        
     else:
-        net = getattr(Model, cfg.model.model_type)(cfg.no_output_chan, cfg.model)
+        net = getattr(Model, cfg.model.model_type)(cfg.model)
     # net = net.to(gpus)
+    
+    SpecLayer = getattr(Spectrogram, cfg.spec_layer.type)
+    spec_layer = SpecLayer(**cfg.spec_layer.args)
+      
     print(type(net))
 
 

@@ -41,7 +41,7 @@ class BCResNet(SpeechCommand):
 
         self.conv2 = nn.Conv2d(20, 20, 5, groups=20, padding=(0, 2))
         self.conv3 = nn.Conv2d(20, 32, 1, bias=False)
-        self.conv4 = nn.Conv2d(32, 12, 1, bias=False)
+        self.conv4 = nn.Conv2d(32,  12, 1, bias=False)
                 
         self.mel_layer = MelSpectrogram(**cfg_model.spec_args)
         self.criterion = nn.CrossEntropyLoss()        
@@ -227,7 +227,7 @@ class BCResNet_exp(SpeechCommand):
     
     
 class Linearmodel(SpeechCommand):
-    def __init__(self, no_output_chan, cfg_model): 
+    def __init__(self,cfg_model): 
         super().__init__()
         self.fastaudio_filter = None
         self.optimizer_cfg = cfg_model.optimizer
@@ -235,8 +235,9 @@ class Linearmodel(SpeechCommand):
         
         self.criterion = nn.CrossEntropyLoss()
         self.cfg_model = cfg_model
-        self.linearlayer = nn.Linear(self.cfg_model.spec_args.n_mels*101, 12)
+        self.linearlayer = nn.Linear(self.cfg_model.args.input_dim, self.cfg_model.args.output_dim)
 #linearlayer = nn.Linear(input size[n_mels*T], output size)
+#cfg.model.args.input_dim will be calculated in main script 
             
     def forward(self, x): 
         spec = self.mel_layer(x)  #from 2D [B, 16000] to 3D [B, F40, T101]

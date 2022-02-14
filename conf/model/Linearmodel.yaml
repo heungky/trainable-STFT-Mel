@@ -3,7 +3,7 @@ spec_args:
     sr: 16000 
     n_fft: 480
     win_length: null
-    n_mels: 10
+    n_mels: 40
     hop_length: 160
     window: 'hann'
     center: True
@@ -13,7 +13,7 @@ spec_args:
     fmin: 0.0
     fmax: null
     norm: 1
-    trainable_mel: False
+    trainable_mel: True
     trainable_STFT: False
     verbose: True
 #nnAudio feature: trainable_mel =  True 
@@ -21,3 +21,7 @@ spec_args:
 optimizer:
     warmup: 'constant'
 #cosine or constant
+
+args:
+    input_dim: 0 #will be calculate in main script
+    output_dim: 12
