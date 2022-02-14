@@ -60,13 +60,14 @@ def cnn(cfg : DictConfig) -> None:
     
     testloader = DataLoader(testset,   
                                   collate_fn=lambda x: data_processing(x),
-                                            **cfg.dataloader.test)
-
+                                            **cfg.dataloader.test)     
     
-    if cfg.spec_layer.type=='STFT':
-            cfg.model.args.input_dim = (cfg.model.spec_args.n_fft//2+1) *101
-    elif cfg.spec_layer.type=='MelSpectrogram':
+    
+    if '_Fastaudio' in cfg.model.model_type:
+            cfg.model.args.input_dim = cfg.model.fastaudio.n_mels *101
+    elif '_nnAudio' in cfg.model.model_type:
             cfg.model.args.input_dim = cfg.model.spec_args.n_mels *101 
+    
             
     #for dataloader, trainset need shuffle
     if cfg.model.model_type=='X_vector':
@@ -75,8 +76,7 @@ def cnn(cfg : DictConfig) -> None:
         net = getattr(Model, cfg.model.model_type)(cfg.model)
     # net = net.to(gpus)
     
-    SpecLayer = getattr(Spectrogram, cfg.spec_layer.type)
-    spec_layer = SpecLayer(**cfg.spec_layer.args)
+
       
     print(type(net))
 

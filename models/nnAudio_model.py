@@ -16,7 +16,7 @@ from .utils import SubSpectralNorm, BroadcastedBlock, TransitionBlock
 from tasks.speechcommand import SpeechCommand
 from speechbrain.processing.features import InputNormalization
 
-class BCResNet(SpeechCommand):
+class BCResNet_nnAudio(SpeechCommand):
     def __init__(self,cfg_model): 
         #in main script, will pass no_output_chan, cfg_spec to model
         super().__init__()
@@ -125,7 +125,7 @@ class BCResNet(SpeechCommand):
 
 
 
-class BCResNet_exp(SpeechCommand):        
+class BCResNet_exp_nnAudio(SpeechCommand):        
     def __init__(self, cfg_model): 
         #in main script, will pass no_output_chan, cfg_spec to model
         super().__init__()
@@ -228,7 +228,7 @@ class BCResNet_exp(SpeechCommand):
         return out, spec
     
     
-class Linearmodel(SpeechCommand):
+class Linearmodel_nnAudio(SpeechCommand):
     def __init__(self,cfg_model): 
         super().__init__()
         self.fastaudio_filter = None

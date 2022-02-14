@@ -10,7 +10,6 @@ data_root: './'
 
 defaults:
     - model: BC_ResNet_Fastaudio 
-    - spec_layer: Mel
 
 #for calling model.BC_ResNetA file
 #python speechcommand_hydra.py model=ModelB

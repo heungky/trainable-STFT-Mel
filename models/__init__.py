@@ -1,3 +1,3 @@
-from .nnAudio_model import BCResNet,BCResNet_exp,Linearmodel
+from .nnAudio_model import BCResNet_nnAudio,BCResNet_exp_nnAudio,Linearmodel_nnAudio
 from .fastaudio_model import BCResNet_Fastaudio, Linearmodel_Fastaudio
 from .X_vector_model import X_vector
