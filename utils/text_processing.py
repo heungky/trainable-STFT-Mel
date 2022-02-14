@@ -167,6 +167,7 @@ def data_processing(data, text_transform, input_key='waveform', label_key='utter
         labels.append(label)
         # modify this according to the model downsampling rate
         input_lengths.append(batch[input_key].shape[1]//downsample_factor-1)
+        #calculation from waveform length to spectrogram length 
         
         label_lengths.append(len(label))
         

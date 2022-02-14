@@ -39,10 +39,14 @@ class ASR(pl.LightningModule):
             out, spec  = self(x)
             
             pred = out
-            pred = torch.log_softmax(pred, -1) # CTC loss requires log_softmax                      
+            pred = torch.log_softmax(pred, -1) # CTC loss requires log_softmax  
+#             print(f'pred={pred.shape}')
+#             print(f"label={ batch['labels'].shape}")
+#             print(f"input_l ={batch['input_lengths']}[")
+#             print(f"label_l = {batch['label_lengths']}")
             loss = F.ctc_loss(pred.transpose(0, 1),
                               batch['labels'],
-                              batch['input_lengths'],
+                              batch['input_lengths'],  #original length before padding
                               batch['label_lengths'])
             valid_metrics = {"valid_ctc_loss": loss}
 
@@ -67,7 +71,6 @@ class ASR(pl.LightningModule):
             out, spec = self(x)
             pred = out
             pred = torch.log_softmax(pred, -1) # CTC loss requires log_softmax
-            spec = output["spectrogram"]
             loss = F.ctc_loss(pred.transpose(0, 1),
                               batch['labels'],
                               batch['input_lengths'],
