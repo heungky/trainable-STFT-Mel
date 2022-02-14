@@ -26,7 +26,7 @@ dataloader:
         pin_memory: True
         
     valid:
-        batch_size: 32
+        batch_size: 4
         num_workers: 8
         pin_memory: True
         
@@ -38,7 +38,7 @@ dataloader:
 data_processing:
     input_key: 'waveform'
     label_key: 0 # will be overwritten inside the code
-    downsample_factor: 320
+    downsample_factor: ${model.spec_args.hop_length}
     #was = ${hop_length}
         
 pl: 
