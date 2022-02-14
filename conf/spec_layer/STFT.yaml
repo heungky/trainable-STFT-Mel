@@ -1,0 +1,12 @@
+type: 'STFT'
+args:    
+    sr: 16000
+    n_fft: 400
+    hop_length: 160
+    window: 'hann'
+    center: True
+    pad_mode: 'reflect'
+    trainable: False
+    output_format: 'Magnitude'
+    verbose: True
+    

@@ -1,0 +1,74 @@
+batch_size: 100
+# model_type: 'ModelA'
+gpus: 1  #[1] = GPU 1 
+max_epochs: 200
+check_val_every_n_epoch: 2
+num_sanity_val_steps: 5
+data_root: './'
+
+
+
+defaults:
+    - model: BC_ResNet_Fastaudio 
+    - spec_layer: Mel
+
+#for calling model.BC_ResNetA file
+#python speechcommand_hydra.py model=ModelB
+
+dataset:
+    train:
+        root: ${data_root}
+        url: 'speech_commands_v0.02'
+        folder_in_archive: 'SpeechCommands'
+        download: True
+        subset: 'training'        
+    val:
+        root: ${data_root}
+        url: 'speech_commands_v0.02'
+        folder_in_archive: 'SpeechCommands'
+        download: False
+        subset: 'validation'      
+    test:
+        root: ${data_root}
+        url: 'speech_commands_v0.02'
+        folder_in_archive: 'SpeechCommands'
+        download: True
+        subset: 'testing'  
+
+
+dataloader:
+       train: 
+           batch_size: ${batch_size}
+#           shuffle: True
+#if use data balancing, cannot use shuffle
+       val:
+           batch_size: ${batch_size}
+           
+       test:
+           batch_size: ${batch_size}
+       
+       
+       
+       
+trainer:
+    gpus: ${gpus}
+    max_epochs: ${max_epochs}
+    check_val_every_n_epoch: ${check_val_every_n_epoch}
+    num_sanity_val_steps: ${num_sanity_val_steps}
+    
+    
+checkpoint:
+  monitor: 'Validation/Loss'
+  filename: "e={epoch:02d}-valid_loss={Validation/Loss:.2f}-valid_acc={Validation/acc:.2f}"
+  save_top_k: 1   #only save the one whatever the minimum 
+  mode: 'min'     #if validation/acc, then will monitor 'max'
+  save_last: True #save the last point 
+  every_n_epochs: ${trainer.check_val_every_n_epoch}      
+  #current case is monitor validation/loss, so need to set check_val_every_n_epoch. no need to set if monitor train/loss
+    
+    
+    
+    
+    
+    
+    
