@@ -21,3 +21,8 @@ spec_args:
 
 optimizer:
     warmup: 'cosine'
+    
+    
+args:
+    input_dim: 0 #will be calculate in main script, base on n_mel
+    output_dim: 12
