@@ -14,6 +14,7 @@ from cosine_annealing_warmup import CosineAnnealingWarmupRestarts
 from models.custom_model import Filterbank #use for fastaudio model 
 from .utils import SubSpectralNorm, BroadcastedBlock, TransitionBlock
 from tasks.speechcommand import SpeechCommand
+from tasks.asr import ASR
 from speechbrain.processing.features import InputNormalization
 
 class BCResNet_nnAudio(SpeechCommand):
@@ -256,6 +257,33 @@ class Linearmodel_nnAudio(SpeechCommand):
 #flatten 2D [B, F*T 40*101] -> linear model instead of convolution [multiply by n_mels*101, output 12 class]
 
     
+    
+class Linearmodel_nnAudio_ASR(ASR):
+    def __init__(self,cfg_model,text_transform,lr): 
+        super().__init__(text_transform,lr)
+
+        self.fastaudio_filter = None
+        self.optimizer_cfg = cfg_model.optimizer
+        self.mel_layer = MelSpectrogram(**cfg_model.spec_args)
+        
+        self.criterion = nn.CrossEntropyLoss()
+        self.cfg_model = cfg_model
+        self.linearlayer = nn.Linear(self.cfg_model.args.input_dim, self.cfg_model.args.output_dim)
+#linearlayer = nn.Linear(input size[n_mels*T], output size)
+#cfg.model.args.input_dim will be calculated in main script 
+            
+    def forward(self, x): 
+        spec = self.mel_layer(x)  #from 2D [B, 16000] to 3D [B, F40, T101]
+        spec = torch.log(spec+1e-10)
+        
+        spec = spec.transpose(1,2)
+        #from 3D [B, F40, T] to 3D [B, T, F40] 
+        out = self.linearlayer(spec) #2D [B,number of class] 
+                               
+        return out, spec               
+                        
+        
+#for ASR task, predict at each time stamp, so no need to flatten.
     
     
     

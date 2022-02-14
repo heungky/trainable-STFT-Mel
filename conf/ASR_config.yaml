@@ -1,0 +1,47 @@
+gpus: 1
+batch_size: 100
+epochs: 400
+output_mode: 'ph'
+download: False
+data_root: './YourFolder'
+
+defaults:    
+    - model: BC_ResNet
+    
+dataset:
+    train:
+        root: ${data_root}
+        split: 'train'
+        download: ${download}
+                
+    test:
+        root: ${data_root}
+        split: 'test'
+        download: False
+        
+dataloader:
+    train:
+        batch_size: 16
+        num_workers: 8
+        pin_memory: True
+        
+    valid:
+        batch_size: 32
+        num_workers: 8
+        pin_memory: True
+        
+    test:
+        batch_size: 1
+        num_workers: 8
+        pin_memory: True
+        
+data_processing:
+    input_key: 'waveform'
+    label_key: 0 # will be overwritten inside the code
+    downsample_factor: 320
+    #was = ${hop_length}
+        
+pl: 
+    lr: 1e-5 
+    
+
