@@ -15,6 +15,7 @@ from models.custom_model import Filterbank #use for fastaudio model
 from .utils import SubSpectralNorm, BroadcastedBlock, TransitionBlock
 from tasks.speechcommand import SpeechCommand
 from speechbrain.processing.features import InputNormalization
+from tasks.asr import ASR
 
 class BCResNet_Fastaudio(SpeechCommand):
     def __init__(self, cfg_model):
@@ -177,5 +178,33 @@ class Linearmodel_Fastaudio(SpeechCommand):
 ##raw waveform 2D [B, 16000] -> mel-layer 3D [B, F241, T101] -> fastaudio filter [B, F40, T101] -> .transpose() [B, T101, F40] -> flatten 2D [B, 101*40] -> linear model instead of convolution [multiply by n_mels*101, output 12 class]
 
 
-
+class Linearmodel_Fastaudio_ASR(ASR):
+    def __init__(self,cfg_model,text_transform,lr): 
+        super().__init__(text_transform,lr)
+        self.mel_layer = STFT(**cfg_model.spec_args)
+        self.fastaudio_filter = Filterbank(**cfg_model.fastaudio)
+        self.optimizer_cfg = cfg_model.optimizer
+        
+        self.criterion = nn.CrossEntropyLoss()
+        self.cfg_model = cfg_model
+        self.linearlayer = nn.Linear(self.cfg_model.args.input_dim, self.cfg_model.args.output_dim)
+        
+#linearlayer = nn.Linear(input size[n_mels*T], output size)
+#cfg.model.args.input_dim will be calculated in main script
+#cfg_model.args.output_dim = 62 possibility
+            
+    def forward(self, x): 
+        
+        stft_output =  self.mel_layer(x)  #from 2D [B, 16000] to 3D [B, F, T]
+              
+        output = self.fastaudio_filter(stft_output.transpose(-1,-2))   
+        #from [B, F, T] to [B,T, F], use fastaudio process stft spectrogram
+        #bcoz stft_output [B, F, T]
+        #size of fbank_matrix is 201x40 [F, n_filters]
+        #print(f'output shape ={output.shape}')   #[100, T, F40])  
+              
+        out = self.linearlayer(output) #2D [B,number of class] 
+                                
+        return out, output   
+#for ASR task, predict at each time stamp, so no need to flatten.
 
