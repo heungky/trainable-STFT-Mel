@@ -65,9 +65,10 @@ def cnn(cfg : DictConfig) -> None:
     
     if '_Fastaudio' in cfg.model.model_type:
             cfg.model.args.input_dim = cfg.model.fastaudio.n_mels *101
+            train_setting=cfg.model.fastaudio.freeze
     elif '_nnAudio' in cfg.model.model_type:
             cfg.model.args.input_dim = cfg.model.spec_args.n_mels *101 
-    
+            train_setting=cfg.model.spec_args.trainable_mel
             
     #for dataloader, trainset need shuffle
     if cfg.model.model_type=='X_vector':
@@ -102,7 +103,7 @@ def cnn(cfg : DictConfig) -> None:
             #optimizer.step()
 
     #now = datetime.now()        
-    logger = TensorBoardLogger(save_dir=".", version=1, name=f'SGD-{cfg.model.model_type}-speechcommand-bz={cfg.batch_size}')
+    logger = TensorBoardLogger(save_dir=".", version=1, name=f'SGD-{cfg.model.model_type}-{train_setting}-speechcommand-bz={cfg.batch_size}')
     
     lr_monitor = LearningRateMonitor(logging_interval='step')
     checkpoint_callback = ModelCheckpoint(**cfg.checkpoint,

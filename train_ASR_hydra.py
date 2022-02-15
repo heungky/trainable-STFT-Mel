@@ -51,11 +51,14 @@ def main(cfg):
     with open(to_absolute_path(dict_file), 'rb') as f:
         output_dict = pickle.load(f)
     cfg.model.args.output_dim = len(output_dict) # number of classes equals to number of entries in the dict
-           
+    
+    
     if '_Fastaudio' in cfg.model.model_type:
             cfg.model.args.input_dim = cfg.model.fastaudio.n_mels 
+            train_setting=cfg.model.fastaudio.freeze
     elif '_nnAudio' in cfg.model.model_type:
             cfg.model.args.input_dim = cfg.model.spec_args.n_mels
+            train_setting=cfg.model.spec_args.trainable_mel
     
 
     text_transform = TextTransform(output_dict, cfg.output_mode) # for text to int conversion layer
@@ -93,7 +96,7 @@ def main(cfg):
                                           save_top_k=3,
                                           mode="min")
     lr_monitor = LearningRateMonitor(logging_interval='step')
-    logger = TensorBoardLogger(save_dir=".", version=1, name=f'SGD-{cfg.model.model_type}-TIMIT')
+    logger = TensorBoardLogger(save_dir=".", version=1, name=f'SGD-{cfg.model.model_type}-{train_setting}-TIMIT')
     trainer = pl.Trainer(gpus=cfg.gpus,
                          max_epochs=cfg.epochs,
                          callbacks=[checkpoint_callback, lr_monitor],
