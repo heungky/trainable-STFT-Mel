@@ -10,6 +10,7 @@ from utils.text_processing import GreedyDecoder
 import fastwer
 import contextlib
 import pandas as pd
+import sys
 
 
 class ASR(pl.LightningModule):
@@ -26,10 +27,19 @@ class ASR(pl.LightningModule):
         out, spec = self(x)
         pred = out
         pred = torch.log_softmax(pred, -1) # CTC loss requires log_softmax
+        
+        
+
         loss = F.ctc_loss(pred.transpose(0, 1),
                           batch['labels'],
                           batch['input_lengths'],
-                          batch['label_lengths'])        
+                          batch['label_lengths'])  
+        if torch.isnan(loss):       
+            torch.save(pred, './ASRpred.pt')
+            torch.save(batch['labels'], './ASRbatch_label.pt')
+            torch.save(batch['input_lengths'], './input_lengths.pt')
+            torch.save(batch['label_lengths'], './label_lengths.pt')
+            sys.exit()
         self.log("train_ctc_loss", loss)
         return loss
 

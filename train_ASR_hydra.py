@@ -1,5 +1,5 @@
 # Useful github libries
-from nnAudio import Spectrogram
+
 from AudioLoader.Speech import TIMIT
 
 # Libraries related to PyTorch
