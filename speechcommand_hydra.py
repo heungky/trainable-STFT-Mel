@@ -76,6 +76,10 @@ def cnn(cfg : DictConfig) -> None:
     else:
         print(f'cfg.model ={cfg.model.keys()}')
         net = getattr(Model, cfg.model.model_type)(cfg.model)
+        ckpt = torch.load('./17-08-24/SGD-Linearmodel_nnAudio-True-speechcommand-bz=100/version_1/checkpoints/last.ckpt')
+        net.mel_layer.mel_basis = ckpt['state_dict']['mel_layer.mel_basis']
+        
+        
     # net = net.to(gpus)
     
 
