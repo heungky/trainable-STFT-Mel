@@ -21,6 +21,7 @@ from torch import Tensor
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from torch.utils.data import WeightedRandomSampler,DataLoader
 from nnAudio import Spectrogram
+from collections import OrderedDict
 
 @hydra.main(config_path="conf", config_name="speechcommand_config")
 def cnn(cfg : DictConfig) -> None:
@@ -76,11 +77,20 @@ def cnn(cfg : DictConfig) -> None:
     else:
         print(f'cfg.model ={cfg.model.keys()}')
         net = getattr(Model, cfg.model.model_type)(cfg.model)
-        ckpt = torch.load('./17-08-24/SGD-Linearmodel_nnAudio-True-speechcommand-bz=100/version_1/checkpoints/last.ckpt')
-        net.mel_layer.mel_basis = ckpt['state_dict']['mel_layer.mel_basis']
         
-        
+        ckpt = torch.load('/workspace/projectA/outputs/2022-02-15/17-09-19/SGD-Linearmodel_nnAudio-False-speechcommand-bz=100/version_1/checkpoints/last.ckpt')
+#         state_dict = OrderedDict([('mel_layer.mel_basis', ckpt['state_dict']['mel_layer.mel_basis'])])
+#         net.load_state_dict(ckpt )
+    
+        #net.mel_layer.mel_basis = ckpt['state_dict']['mel_layer.mel_basis']
+        #applied trained bank from linearmodel to ResNet model
+        #ckpt file contain all the trained parameter 
     # net = net.to(gpus)
+        net.parameters(ckpt )      
+        for param in net.named_parameters():
+            if 'mel_basis' not in param[0]:        
+                param[1].requires_grad = False
+        #freeze network except train mel_basis
     
 
       
