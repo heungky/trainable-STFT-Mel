@@ -102,10 +102,58 @@ class SpeechCommand(LightningModule):
                 
 #     these is for plot mel filter band in nnAudio 
 #     fbank_matrix contain all filterbank value
+        if batch_idx == 0:
+            if self.fastaudio_filter!=None:
+                fig, axes = plt.subplots(2,2)
+                for ax, kernel_num in zip(axes.flatten(), [2,10,20,50]):
+                    ax.plot(self.mel_layer.wsin[kernel_num,0].cpu())
+                    ax.set_ylim(-1,1)
+                    fig.suptitle('sin')
+
+                self.logger.experiment.add_figure(
+                        'Validation/sin',
+                        fig,
+                        global_step=self.current_epoch)
+
+                fig, axes = plt.subplots(2,2)
+                for ax, kernel_num in zip(axes.flatten(), [2,10,20,50]):
+                    ax.plot(self.mel_layer.wcos[kernel_num,0].cpu())
+                    ax.set_ylim(-1,1)
+                    fig.suptitle('cos')
+
+                self.logger.experiment.add_figure(
+                        'Validation/cos',
+                        fig,
+                        global_step=self.current_epoch)
+               
             
+            elif self.fastaudio_filter==None:    
+                fig, axes = plt.subplots(2,2)
+                for ax, kernel_num in zip(axes.flatten(), [2,10,20,50]):
+                    ax.plot(self.mel_layer.stft.wsin[kernel_num,0].cpu())
+                    ax.set_ylim(-1,1)
+                    fig.suptitle('sin')
+
+                self.logger.experiment.add_figure(
+                        'Validation/sin',
+                        fig,
+                        global_step=self.current_epoch)
+
+                fig, axes = plt.subplots(2,2)
+                for ax, kernel_num in zip(axes.flatten(), [2,10,20,50]):
+                    ax.plot(self.mel_layer.stft.wcos[kernel_num,0].cpu())
+                    ax.set_ylim(-1,1)
+                    fig.suptitle('cos')
+
+                self.logger.experiment.add_figure(
+                        'Validation/cos',
+                        fig,
+                        global_step=self.current_epoch)
+    
             self.log_images(spec, 'Validation/Spec')
 #plot log_images for 1st epoch_1st batch
         
+            
         output_dict = {'outputs': outputs,
                        'labels': batch['labels']}        
         return output_dict
