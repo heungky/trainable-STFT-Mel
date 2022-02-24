@@ -67,9 +67,11 @@ def cnn(cfg : DictConfig) -> None:
     if '_Fastaudio' in cfg.model.model_type:
             cfg.model.args.input_dim = cfg.model.fastaudio.n_mels *101
             train_setting=cfg.model.fastaudio.freeze
+            n_mel=cfg.model.fastaudio.n_mels
     elif '_nnAudio' in cfg.model.model_type:
             cfg.model.args.input_dim = cfg.model.spec_args.n_mels *101 
             train_setting=cfg.model.spec_args.trainable_mel
+            n_mel=cfg.model.spec_args.n_mels
             
     #for dataloader, trainset need shuffle
     if cfg.model.model_type=='X_vector':
@@ -78,18 +80,21 @@ def cnn(cfg : DictConfig) -> None:
         print(f'cfg.model ={cfg.model.keys()}')
         net = getattr(Model, cfg.model.model_type)(cfg.model)
         
-        ckpt = torch.load('/workspace/projectA/outputs/2022-02-15/17-09-19/SGD-Linearmodel_nnAudio-False-speechcommand-bz=100/version_1/checkpoints/last.ckpt')
+#         ckpt = torch.load('/workspace/projectA/outputs/2022-02-15/17-09-19/SGD-Linearmodel_nnAudio-False-speechcommand-bz=100/version_1/checkpoints/last.ckpt')
+#         ckpt = torch.load('/workspace/projectA/outputs/2022-02-05/17-50-42/SGD-BCResNet-bz=100/version_1/checkpoints/last.ckpt')
 #         state_dict = OrderedDict([('mel_layer.mel_basis', ckpt['state_dict']['mel_layer.mel_basis'])])
-#         net.load_state_dict(ckpt )
+#         net.load_state_dict(ckpt['state_dict'] )
     
         #net.mel_layer.mel_basis = ckpt['state_dict']['mel_layer.mel_basis']
         #applied trained bank from linearmodel to ResNet model
-        #ckpt file contain all the trained parameter 
+        #ckpt file contain all the trained parameter is a dict
+        #ckpt['state_dict'] is OrderedDict 
+        #net.load_state_dict need to give a OrderedDict
     # net = net.to(gpus)
-        net.parameters(ckpt )      
-        for param in net.named_parameters():
-            if 'mel_basis' not in param[0]:        
-                param[1].requires_grad = False
+      
+#         for param in net.named_parameters():
+#             if 'mel_basis' not in param[0]:        
+#                 param[1].requires_grad = False
         #freeze network except train mel_basis
     
 
@@ -116,8 +121,10 @@ def cnn(cfg : DictConfig) -> None:
             #loss.backward()
             #optimizer.step()
 
-    #now = datetime.now()        
-    logger = TensorBoardLogger(save_dir=".", version=1, name=f'SGD-{cfg.model.model_type}-{train_setting}-speechcommand-bz={cfg.batch_size}')
+    #now = datetime.now()       
+    name = f'SGD-n_mels={n_mel}-{cfg.model.model_type}-{train_setting}-speechcommand'
+    
+    logger = TensorBoardLogger(save_dir=".", version=1, name=name)
     
     lr_monitor = LearningRateMonitor(logging_interval='step')
     checkpoint_callback = ModelCheckpoint(**cfg.checkpoint,
