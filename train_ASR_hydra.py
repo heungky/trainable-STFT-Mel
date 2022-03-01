@@ -56,9 +56,13 @@ def main(cfg):
     if '_Fastaudio' in cfg.model.model_type:
             cfg.model.args.input_dim = cfg.model.fastaudio.n_mels 
             train_setting=cfg.model.fastaudio.freeze
+            n_mel=cfg.model.fastaudio.n_mels
+            stft = cfg.model.spec_args.trainable
     elif '_nnAudio' in cfg.model.model_type:
             cfg.model.args.input_dim = cfg.model.spec_args.n_mels
             train_setting=cfg.model.spec_args.trainable_mel
+            n_mel=cfg.model.spec_args.n_mels
+            stft = cfg.model.spec_args.trainable_STFT
     
 
     text_transform = TextTransform(output_dict, cfg.output_mode) # for text to int conversion layer
@@ -95,8 +99,9 @@ def main(cfg):
                                           filename="{epoch:02d}-{valid_ctc_loss:.2f}-{PER:.2f}",
                                           save_top_k=3,
                                           mode="min")
+    name = f'n_mels={n_mel}-{cfg.model.model_type}-mel={train_setting}-STFT={stft}--TIMIT'
     lr_monitor = LearningRateMonitor(logging_interval='step')
-    logger = TensorBoardLogger(save_dir=".", version=1, name=f'SGD-{cfg.model.model_type}-{train_setting}-TIMIT')
+    logger = TensorBoardLogger(save_dir=".", version=1, name=name)
     trainer = pl.Trainer(gpus=cfg.gpus,
                          max_epochs=cfg.epochs,
                          callbacks=[checkpoint_callback, lr_monitor],
