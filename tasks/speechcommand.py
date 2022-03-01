@@ -53,12 +53,15 @@ class SpeechCommand(LightningModule):
         return loss
 #log(graph title, take acc as data, on_step: plot every step, on_epch: plot every epoch)
 
+
+     
     def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx,
                        optimizer_closure, on_tpu, using_native_amp, using_lbfgs):
-        optimizer.step(closure=optimizer_closure)
-        with torch.no_grad():
-            torch.clamp_(self.mel_layer.mel_basis, 0, 1)    
-    #after optimizer step, do clamp function on mel_basis
+        if self.fastaudio_filter==None:
+            optimizer.step(closure=optimizer_closure)
+            with torch.no_grad():
+                torch.clamp_(self.mel_layer.mel_basis, 0, 1)    
+        #after optimizer step, do clamp function on mel_basis
 
     
     def validation_step(self, batch, batch_idx):               
@@ -287,11 +290,11 @@ class SpeechCommand(LightningModule):
                 model_param.append(params)          
         optimizer = optim.SGD([
                                 {"params": self.mel_layer.parameters(),
-                                 "lr": 1e-4,
+                                 "lr": 1e-3,
                                  "momentum": 0.9,
                                  "weight_decay": 0.001},
                                 {"params": model_param,
-                                 "lr": 1e-4,
+                                 "lr": 1e-3,
                                  "momentum": 0.9,
                                  "weight_decay": 0.001}            
                               ])
