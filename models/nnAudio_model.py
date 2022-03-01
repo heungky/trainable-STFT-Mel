@@ -391,6 +391,7 @@ class Linearmodel_nnAudio_ASR(ASR):
         
 #linearlayer = nn.Linear(input size[n_mels*T], output size)
 #cfg.model.args.input_dim will be calculated in main script 
+#add LSTM layer
             
     def forward(self, x): 
         spec = self.mel_layer(x)  #from 2D [B, 16000] to 3D [B, F40, T101]
@@ -398,12 +399,16 @@ class Linearmodel_nnAudio_ASR(ASR):
 
         spec = spec.transpose(1,2)
         #from 3D [B, F40, T] to 3D [B, T, F40] 
+
         x, h = self.lstmlayer(spec) # x: [B, T, hidden*2] h: [B, hideen*2]
         out = self.linearlayer(x) #2D [B,T, number of class] 
-                               
+
+        
         return out, spec                                       
         
-#for ASR task, predict at each time stamp, so no need to flatten.
+#for ASR task, predict at each time stamp, so no need to flatten
+#lstmlayer retuen x as final hidden state/short term memory for each element in the batch
+#lstmlayer return h as final cell state/long term memory for each element in the batch
     
     
     
