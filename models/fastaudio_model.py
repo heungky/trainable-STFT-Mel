@@ -284,11 +284,17 @@ class Linearmodel_Fastaudio_ASR(ASR):
         
         self.criterion = nn.CrossEntropyLoss()
         self.cfg_model = cfg_model
-        self.linearlayer = nn.Linear(self.cfg_model.args.input_dim, self.cfg_model.args.output_dim)
+        self.linearlayer = nn.Linear(self.cfg_model.args.hidden_dim*2, self.cfg_model.args.output_dim)
         
 #linearlayer = nn.Linear(input size[n_mels*T], output size)
 #cfg.model.args.input_dim will be calculated in main script
 #cfg_model.args.output_dim = 62 possibility
+        self.lstmlayer = nn.LSTM(input_size=self.cfg_model.args.input_dim,
+                                 hidden_size=self.cfg_model.args.hidden_dim,
+                                 num_layers=1,
+                                 batch_first=True,
+                                 bidirectional=True)
+
             
     def forward(self, x): 
         
@@ -299,8 +305,9 @@ class Linearmodel_Fastaudio_ASR(ASR):
         #bcoz stft_output [B, F, T]
         #size of fbank_matrix is 201x40 [F, n_filters]
         #print(f'output shape ={output.shape}'dd)   #[100, T, F40])  
-              
-        out = self.linearlayer(output) #2D [B,number of class] 
+        
+        x,h = self.lstmlayer(output)
+        out = self.linearlayer(x) #2D [B,number of class] 
                                 
         return out, output   
 #for ASR task, predict at each time stamp, so no need to flatten.
