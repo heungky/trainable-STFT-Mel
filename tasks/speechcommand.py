@@ -58,7 +58,7 @@ class SpeechCommand(LightningModule):
         optimizer.step(closure=optimizer_closure)
         with torch.no_grad():
             torch.clamp_(self.mel_layer.mel_basis, 0, 1)    
-#after optimizer step, do clamp function on mel_basis
+    #after optimizer step, do clamp function on mel_basis
 
     
     def validation_step(self, batch, batch_idx):               
@@ -106,7 +106,7 @@ class SpeechCommand(LightningModule):
             if self.fastaudio_filter!=None:
                 fig, axes = plt.subplots(2,2)
                 for ax, kernel_num in zip(axes.flatten(), [2,10,20,50]):
-                    ax.plot(self.mel_layer.wsin[kernel_num,0].cpu())
+                    ax.plot(self.mel_layer.wsin[kernel_num,0].cpu())   #STFT() called in Fastaudio model
                     ax.set_ylim(-1,1)
                     fig.suptitle('sin')
 
@@ -130,7 +130,7 @@ class SpeechCommand(LightningModule):
             elif self.fastaudio_filter==None:    
                 fig, axes = plt.subplots(2,2)
                 for ax, kernel_num in zip(axes.flatten(), [2,10,20,50]):
-                    ax.plot(self.mel_layer.stft.wsin[kernel_num,0].cpu())
+                    ax.plot(self.mel_layer.stft.wsin[kernel_num,0].cpu())  #STFT in included in Melspectrogram()
                     ax.set_ylim(-1,1)
                     fig.suptitle('sin')
 
@@ -287,11 +287,11 @@ class SpeechCommand(LightningModule):
                 model_param.append(params)          
         optimizer = optim.SGD([
                                 {"params": self.mel_layer.parameters(),
-                                 "lr": 1e-3,
+                                 "lr": 1e-4,
                                  "momentum": 0.9,
                                  "weight_decay": 0.001},
                                 {"params": model_param,
-                                 "lr": 1e-3,
+                                 "lr": 1e-4,
                                  "momentum": 0.9,
                                  "weight_decay": 0.001}            
                               ])
