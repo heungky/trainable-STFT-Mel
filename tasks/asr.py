@@ -43,7 +43,14 @@ class ASR(pl.LightningModule):
             sys.exit()
         self.log("train_ctc_loss", loss)
         return loss
-
+  
+    def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx,
+                   optimizer_closure, on_tpu, using_native_amp, using_lbfgs):
+        if self.fastaudio_filter==None:
+            optimizer.step(closure=optimizer_closure)
+            with torch.no_grad():
+                torch.clamp_(self.mel_layer.mel_basis, 0, 1)    
+    
     def validation_step(self, batch, batch_idx):
         x = batch['waveforms']
         with torch.no_grad():
@@ -75,7 +82,86 @@ class ASR(pl.LightningModule):
                     self._log_text(decoded_targets, 'Valid/texts_label', max_sentences=4)
 
             self.log_dict(valid_metrics)
+        if batch_idx == 0:
+            fig, axes = plt.subplots(1,1)
             
+            if self.fastaudio_filter!=None:
+                fbank_matrix = self.fastaudio_filter.get_fbanks()
+                f_central = self.fastaudio_filter.f_central
+                band = self.fastaudio_filter.band
+                debug_dict = {'fbank_matrix': fbank_matrix,
+                              'f_central': f_central,
+                              'band': band}
+                
+#                 torch.save(debug_dict, f'debug_dict_e{self.current_epoch}.pt')
+                for idx, i in enumerate(fbank_matrix.t().detach().cpu().numpy()):
+                    axes.plot(i)
+                self.logger.experiment.add_figure(
+                    'Validation/fastaudio_MelFilterBanks',
+                    fig,
+                    global_step=self.current_epoch)
+                
+            elif self.fastaudio_filter==None:
+            
+                mel_filter_banks = self.mel_layer.mel_basis
+                for i in mel_filter_banks:
+                    axes.plot(i.cpu())
+
+                self.logger.experiment.add_figure(
+                    'Validation/MelFilterBanks',
+                    fig,
+                    global_step=self.current_epoch)
+                
+#     these is for plot mel filter band in nnAudio 
+#     fbank_matrix contain all filterbank value
+        if batch_idx == 0:
+            if self.fastaudio_filter!=None:
+                fig, axes = plt.subplots(2,2)
+                for ax, kernel_num in zip(axes.flatten(), [2,10,20,50]):
+                    ax.plot(self.mel_layer.wsin[kernel_num,0].cpu())   #STFT() called in Fastaudio model
+                    ax.set_ylim(-1,1)
+                    fig.suptitle('sin')
+
+                self.logger.experiment.add_figure(
+                        'Validation/sin',
+                        fig,
+                        global_step=self.current_epoch)
+
+                fig, axes = plt.subplots(2,2)
+                for ax, kernel_num in zip(axes.flatten(), [2,10,20,50]):
+                    ax.plot(self.mel_layer.wcos[kernel_num,0].cpu())
+                    ax.set_ylim(-1,1)
+                    fig.suptitle('cos')
+
+                self.logger.experiment.add_figure(
+                        'Validation/cos',
+                        fig,
+                        global_step=self.current_epoch)
+               
+            
+            elif self.fastaudio_filter==None:    
+                fig, axes = plt.subplots(2,2)
+                for ax, kernel_num in zip(axes.flatten(), [2,10,20,50]):
+                    ax.plot(self.mel_layer.stft.wsin[kernel_num,0].cpu())  #STFT in included in Melspectrogram()
+                    ax.set_ylim(-1,1)
+                    fig.suptitle('sin')
+
+                self.logger.experiment.add_figure(
+                        'Validation/sin',
+                        fig,
+                        global_step=self.current_epoch)
+
+                fig, axes = plt.subplots(2,2)
+                for ax, kernel_num in zip(axes.flatten(), [2,10,20,50]):
+                    ax.plot(self.mel_layer.stft.wcos[kernel_num,0].cpu())
+                    ax.set_ylim(-1,1)
+                    fig.suptitle('cos')
+
+                self.logger.experiment.add_figure(
+                        'Validation/cos',
+                        fig,
+                        global_step=self.current_epoch)
+                
     def test_step(self, batch, batch_idx):
         x = batch['waveforms']
         with torch.no_grad():
