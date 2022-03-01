@@ -153,7 +153,7 @@ class BCResNet_nnAudio_ASR(ASR):
 
         self.conv2 = nn.Conv2d(20, 20, 5, groups=20, padding=(0, 2))
         self.conv3 = nn.Conv2d(20, 32, 1, bias=False)
-        self.conv4 = nn.Conv2d(32,  self.cfg_model.args.output_dim, 1, bias=False)
+        self.conv4 = nn.Conv2d(32*2,  self.cfg_model.args.output_dim, 1, bias=False)
                 
         self.mel_layer = MelSpectrogram(**cfg_model.spec_args)
         self.criterion = nn.CrossEntropyLoss()        
@@ -162,6 +162,11 @@ class BCResNet_nnAudio_ASR(ASR):
         
 #         self.norm = InputNormalization()
         #for normalization
+        self.lstmlayer = nn.LSTM(input_size=32,
+                                 hidden_size=32,
+                                 num_layers=1,
+                                 batch_first=True,
+                                 bidirectional=True)
         
     def forward(self, x):        
         # x [Batch_size,16000]
@@ -216,15 +221,21 @@ class BCResNet_nnAudio_ASR(ASR):
 
 #         print('Conv2 INPUT SHAPE:', out.shape)
         out = self.conv2(out)
-
+        
 #         print('Conv3 INPUT SHAPE:', out.shape)
-        out = self.conv3(out)
+        out = self.conv3(out)   #4D (B, 32, 1, T)
+        out = out.squeeze(2)    #3D (B, 32, T) lstmlayer need 3D
+        out = out.transpose(1,2) #(B, T, 32)
+        out, _ = self.lstmlayer(out) 
+        out = out.transpose(1,2) #(B,32, T)
+        out = out.unsqueeze(2)  #4D for conv4
 #         out = out.mean(-1, keepdim=True) 
 # after taking mean, time dimension is gone, diff setting from KWS
 
 #         print('Conv4 INPUT SHAPE:', out.shape)
-        out = self.conv4(out)   #4D
-        out = out.squeeze(2) #.squeeze(2)  #3D (B,F,T)
+        out = self.conv4(out)   #4D (B, C, 1, T)
+        
+        out = out.squeeze(2) #.squeeze(2)  #3D (B,num_classes,T)
         out = out.transpose(1,2) ##D (B,T,F)
         
         spec = spec.squeeze(1)

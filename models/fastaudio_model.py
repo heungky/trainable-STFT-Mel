@@ -164,7 +164,7 @@ class BCResNet_Fastaudio_ASR(ASR):
 
         self.conv2 = nn.Conv2d(20, 20, 5, groups=20, padding=(0, 2))
         self.conv3 = nn.Conv2d(20, 32, 1, bias=False)
-        self.conv4 = nn.Conv2d(32, self.cfg_model.args.output_dim, 1, bias=False)
+        self.conv4 = nn.Conv2d(32*2, self.cfg_model.args.output_dim, 1, bias=False)
         
 
         self.criterion = nn.CrossEntropyLoss()
@@ -172,6 +172,11 @@ class BCResNet_Fastaudio_ASR(ASR):
 #self.mel_layer use in validation step for [mel_filter_banks = self.mel_layer.mel_basis]
 #self.criterion use in traning & validation step
         
+        self.lstmlayer = nn.LSTM(input_size=32,
+                             hidden_size=32,
+                             num_layers=1,
+                             batch_first=True,
+                             bidirectional=True)
     def forward(self, x):        
         # x [Batch_size,16000] 2D
         #self.mel_layer.mel_basis = torch.clamp(self.mel_layer.mel_basis, 0, 1)
@@ -219,9 +224,14 @@ class BCResNet_Fastaudio_ASR(ASR):
         out = self.conv2(out)
 
         out = self.conv3(out)
-#         out = out.mean(-1, keepdim=True)
 
-        out = self.conv4(out)   #4D
+        out = out.squeeze(2)    #3D (B, 32, T) lstmlayer need 3D
+        out = out.transpose(1,2) #(B, T, 32)
+        out, _ = self.lstmlayer(out) 
+        out = out.transpose(1,2) #(B,32, T)
+        out = out.unsqueeze(2)  #4D for conv4
+
+        out = self.conv4(out)   #4D (B, F, 1, T)
         out = out.squeeze(2)   #3D (B,F,T)
         out = out.transpose(1,2) #3D (B, T, F)
         spec = spec.squeeze(1)
