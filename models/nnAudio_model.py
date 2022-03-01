@@ -51,6 +51,7 @@ class BCResNet_nnAudio(SpeechCommand):
         #self.criterion use in traning & validation step
         
 #         self.norm = InputNormalization()
+        self.batchnorm_layer = nn.BatchNorm1d(self.cfg_model.spec_args.n_mels)
         #for normalization
         
     def forward(self, x):        
@@ -64,6 +65,8 @@ class BCResNet_nnAudio(SpeechCommand):
         #spec = torch.relu(spec)
         
         spec = torch.log(spec+1e-10) 
+        
+        spec = self.batchnorm_layer(spec)
         
 #         batch_size = torch.ones([spec.shape[0]]).to(spec.device)                
 #         self.norm.to(spec.device)
@@ -350,22 +353,24 @@ class Linearmodel_nnAudio(SpeechCommand):
         self.linearlayer = nn.Linear(self.cfg_model.args.input_dim, self.cfg_model.args.output_dim)
 #linearlayer = nn.Linear(input size[n_mels*T], output size)
 #cfg.model.args.input_dim will be calculated in main script 
+        self.batchnorm_layer = nn.BatchNorm1d(self.cfg_model.spec_args.n_mels)
+#for normalization    
             
     def forward(self, x): 
         spec = self.mel_layer(x)  #from 2D [B, 16000] to 3D [B, F40, T101]
         spec = torch.log(spec+1e-10)
+        spec = self.batchnorm_layer(spec)
+        #return same shape as input 3D [B, F, T]
         flatten_spec = torch.flatten(spec, start_dim=1) 
         #from 3D [B, F, T] to 2D [B, F*T 40*101] 
         #start_dim: flattening start from 1st dimention
         out = self.linearlayer(flatten_spec) #2D [B,number of class] 
                                
         return out, spec               
-                        
-                              
+                                                     
 #raw waveform 2D [B, 16000] -> mel-layer 3D [B, F40, T101] -> spec -> 
 #flatten 2D [B, F*T 40*101] -> linear model instead of convolution [multiply by n_mels*101, output 12 class]
 
-    
     
 class Linearmodel_nnAudio_ASR(ASR):
     def __init__(self,cfg_model,text_transform,lr): 
@@ -377,20 +382,26 @@ class Linearmodel_nnAudio_ASR(ASR):
         
         self.criterion = nn.CrossEntropyLoss()
         self.cfg_model = cfg_model
-        self.linearlayer = nn.Linear(self.cfg_model.args.input_dim, self.cfg_model.args.output_dim)
+        self.linearlayer = nn.Linear(self.cfg_model.args.hidden_dim*2, self.cfg_model.args.output_dim)
+        self.lstmlayer = nn.LSTM(input_size=self.cfg_model.args.input_dim,
+                                 hidden_size=self.cfg_model.args.hidden_dim,
+                                 num_layers=1,
+                                 batch_first=True,
+                                 bidirectional=True)
+        
 #linearlayer = nn.Linear(input size[n_mels*T], output size)
 #cfg.model.args.input_dim will be calculated in main script 
             
     def forward(self, x): 
         spec = self.mel_layer(x)  #from 2D [B, 16000] to 3D [B, F40, T101]
         spec = torch.log(spec+1e-10)
-        
+
         spec = spec.transpose(1,2)
         #from 3D [B, F40, T] to 3D [B, T, F40] 
-        out = self.linearlayer(spec) #2D [B,number of class] 
+        x, h = self.lstmlayer(spec) # x: [B, T, hidden*2] h: [B, hideen*2]
+        out = self.linearlayer(x) #2D [B,T, number of class] 
                                
-        return out, spec               
-                        
+        return out, spec                                       
         
 #for ASR task, predict at each time stamp, so no need to flatten.
     
