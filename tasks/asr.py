@@ -30,10 +30,11 @@ class ASR(pl.LightningModule):
         
         
 
-        loss = F.ctc_loss(pred.transpose(0, 1),
+        loss = F.ctc_loss(pred.transpose(0, 1), # (B, T_i, num_class)
                           batch['labels'],
-                          batch['input_lengths'],
-                          batch['label_lengths'])  
+                          batch['input_lengths'],   #prediction T_i
+                          batch['label_lengths']) 
+                          #T_l  if loss nan:check T_i > T_l
         if torch.isnan(loss):       
             torch.save(pred, './ASRpred.pt')
             torch.save(batch['labels'], './ASRbatch_label.pt')
