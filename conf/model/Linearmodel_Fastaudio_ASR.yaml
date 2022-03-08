@@ -36,7 +36,7 @@ optimizer:
 args:
     input_dim: 0 #will be calculate in main script, base on n_mel
     output_dim:  #will be calculate in main script  cfg.model.args.output_dim = len(output_dict)
-    hidden_dim: 256
+    hidden_dim: 32
 #param_change_factor: bool
 # If freeze=False, this parameter affects the speed at which the filter
 # parameters (i.e., central_freqs and bands) can be changed.  When high
