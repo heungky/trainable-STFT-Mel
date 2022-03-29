@@ -1,4 +1,17 @@
-model_type: 'Linearmodel_nnAudio_ASR'
+model_type: 'BCResNet_nnAudio_maskout'
+
+stft_args:
+    sr: 16000 
+    n_fft: 480
+    win_length: null
+    hop_length: 160
+    window: 'hann'
+    center: True
+    pad_mode: 'reflect'
+    trainable: False
+    verbose: True
+    output_format: 'Magnitude'
+
 spec_args:
     sr: 16000 
     n_fft: 480
@@ -13,8 +26,8 @@ spec_args:
     fmin: 0.0
     fmax: null
     norm: 1
-    trainable_mel: True
-    trainable_STFT: False
+    trainable_mel: False
+    trainable_STFT: ${model.stft_args.trainable}
     verbose: True
 #nnAudio feature: trainable_mel =  True 
 
@@ -25,5 +38,3 @@ optimizer:
 args:
     input_dim: 0 #will be calculate in main script, base on n_mel
     output_dim: 12
-    hidden_dim: 32
-#hidden_dim for lstmlayer

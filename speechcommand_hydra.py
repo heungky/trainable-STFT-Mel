@@ -75,12 +75,20 @@ def cnn(cfg : DictConfig) -> None:
             n_mel=cfg.model.spec_args.n_mels
             stft = cfg.model.spec_args.trainable_STFT
             
+    elif '_maskout' in cfg.model.model_type:
+            cfg.model.args.input_dim = cfg.model.spec_args.n_mels *101 
+            train_setting=cfg.model.spec_args.trainable_mel
+            n_mel=cfg.model.spec_args.n_mels
+            stft = cfg.model.spec_args.trainable_STFT            
+            
     #for dataloader, trainset need shuffle
     if cfg.model.model_type=='X_vector':
-        net = getattr(Model, cfg.model.model_type)(**cfg.model.args, cfg_model=cfg.model)        
+        net = getattr(Model, cfg.model.model_type)(**cfg.model.args, cfg_model=cfg.model) 
     else:
         print(f'cfg.model ={cfg.model.keys()}')
         net = getattr(Model, cfg.model.model_type)(cfg.model)
+        
+        
         
 #         ckpt = torch.load('/workspace/projectA/outputs/2022-02-15/17-09-19/SGD-Linearmodel_nnAudio-False-speechcommand-bz=100/version_1/checkpoints/last.ckpt')
 #         ckpt = torch.load('/workspace/projectA/outputs/2022-02-05/17-50-42/SGD-BCResNet-bz=100/version_1/checkpoints/last.ckpt')
@@ -135,7 +143,7 @@ def cnn(cfg : DictConfig) -> None:
     callbacks = [checkpoint_callback, lr_monitor]
 
     trainer = Trainer(**cfg.trainer, logger = logger, callbacks=callbacks)
-
+    
     trainer.fit(net, trainloader, validloader)
     trainer.test(net, testloader)
     #added validloader, in order to reach validation_step
