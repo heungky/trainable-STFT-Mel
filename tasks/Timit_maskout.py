@@ -26,15 +26,14 @@ class Timit_maskout(pl.LightningModule):
         x = batch['waveforms']
         out, spec, stft = self(x)
         pred = out
-        pred = torch.log_softmax(pred, -1) # CTC loss requires log_softmax
+        pred = torch.log_softmax(pred, -1) 
+        #CTC loss requires log_softmax
         
-        
-
         loss = F.ctc_loss(pred.transpose(0, 1), # (B, T_i, num_class)
                           batch['labels'],
                           batch['input_lengths'],   #prediction T_i
-                          batch['label_lengths']) 
-                          #T_l  if loss nan:check T_i > T_l
+                          batch['label_lengths'])   #T_l
+                          #if loss nan:check T_i > T_l
         if torch.isnan(loss):       
             torch.save(pred, './ASRpred.pt')
             torch.save(batch['labels'], './ASRbatch_label.pt')
@@ -57,11 +56,9 @@ class Timit_maskout(pl.LightningModule):
             out, spec, stft = self(x)
             
             pred = out
-            pred = torch.log_softmax(pred, -1) # CTC loss requires log_softmax  
-#             print(f'pred={pred.shape}')
-#             print(f"label={ batch['labels'].shape}")
-#             print(f"input_l ={batch['input_lengths']}[")
-#             print(f"label_l = {batch['label_lengths']}")
+            pred = torch.log_softmax(pred, -1) 
+            #CTC loss requires log_softmax  
+
             loss = F.ctc_loss(pred.transpose(0, 1),
                               batch['labels'],
                               batch['input_lengths'],  #original length before padding
@@ -95,9 +92,7 @@ class Timit_maskout(pl.LightningModule):
                     'Validation/MelFilterBanks',
                     fig,
                     global_step=self.current_epoch)
-                
-#     these is for plot mel filter band in nnAudio 
-#     fbank_matrix contain all filterbank value
+        #for plotting mel filter band in nnAudio  
 
                                 
         if batch_idx == 0:
@@ -133,7 +128,7 @@ class Timit_maskout(pl.LightningModule):
         with torch.no_grad():
             out, spec, stft = self(x)
             pred = out
-            pred = torch.log_softmax(pred, -1) # CTC loss requires log_softmax
+            pred = torch.log_softmax(pred, -1) #CTC loss requires log_softmax
             loss = F.ctc_loss(pred.transpose(0, 1),
                               batch['labels'],
                               batch['input_lengths'],
@@ -158,7 +153,8 @@ class Timit_maskout(pl.LightningModule):
             
     def _log_text(self, texts, tag, max_sentences=4):
         text_list=[]
-        for idx in range(min(len(texts),max_sentences)): # visualize 4 samples or the batch whichever is smallest
+        for idx in range(min(len(texts),max_sentences)): 
+            # visualize 4 samples or the batch whichever is smallest
             # Avoid using <> tag, which will have conflicts in html markdown
             text_list.append(texts[idx])
         s = pd.Series(text_list, name="IPA")
@@ -174,11 +170,5 @@ class Timit_maskout(pl.LightningModule):
     def configure_optimizers(self):
 
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
-#         scheduler = TriStageLRSchedule(optimizer,
-#                                        [1e-8, self.lr, 1e-8],
-#                                        [0.2,0.6,0.2],
-#                                        max_update=len(self.train_dataloader.dataloader)*self.trainer.max_epochs)   
-#         scheduler = MultiStepLR(optimizer, [1,3,5,7,9], gamma=0.1, last_epoch=-1, verbose=False)
 
-#         return [optimizer], [{"scheduler":scheduler, "interval": "step"}]
         return [optimizer]
