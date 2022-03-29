@@ -1,0 +1,49 @@
+model_type: 'Linearmodel_nnAudio_maskout'
+stft_args:
+    sr: 16000 
+    n_fft: 480
+    win_length: null
+    hop_length: 160
+    window: 'hann'
+    center: True
+    pad_mode: 'reflect'
+    trainable: False
+    verbose: True
+    output_format: 'Magnitude'
+    
+#exp on p8/2/22ower = 1 & 2
+
+spec_args:
+    sr: 16000 
+    n_fft: 480
+    win_length: null
+    n_mels: 40
+    hop_length: 160
+    window: 'hann'
+    center: True
+    pad_mode: 'reflect'
+    power: 2.0
+    htk: False
+    fmin: 0.0
+    fmax: null
+    norm: 1
+    trainable_mel: False
+    trainable_STFT: ${model.stft_args.trainable}
+    verbose: True
+    
+optimizer:
+    warmup: 'constant'
+#warmup: cosine / constant  
+
+args:
+    input_dim: 0 #will be calculate in main script, base on n_mel
+    output_dim: 12
+
+#param_change_factor: bool
+# If freeze=False, this parameter affects the speed at which the filter
+# parameters (i.e., central_freqs and bands) can be changed.  When high
+# (e.g., param_change_factor=1) the filters change a lot during training.
+# When low (e.g. param_change_factor=0.1) the filter parameters are more
+# stable during training    
+#nnAudio feature: trainable_mel =  True 
+

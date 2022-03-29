@@ -14,7 +14,9 @@ from cosine_annealing_warmup import CosineAnnealingWarmupRestarts
 from models.custom_model import Filterbank #use for fastaudio model 
 from .utils import SubSpectralNorm, BroadcastedBlock, TransitionBlock
 from tasks.speechcommand import SpeechCommand
+from tasks.speechcommand2 import SpeechCommand_maskout
 from tasks.asr import ASR
+from tasks.asr2 import ASR_maskout
 from speechbrain.processing.features import InputNormalization
 
 class BCResNet_nnAudio(SpeechCommand):
@@ -51,8 +53,13 @@ class BCResNet_nnAudio(SpeechCommand):
         #self.criterion use in traning & validation step
         
 #         self.norm = InputNormalization()
-        self.batchnorm_layer = nn.BatchNorm1d(self.cfg_model.spec_args.n_mels)
+#         self.batchnorm_layer = nn.BatchNorm1d(self.cfg_model.spec_args.n_mels)
         #for normalization
+        
+        nn.init.kaiming_uniform_(self.mel_layer.mel_basis, mode='fan_in')
+        self.mel_layer.mel_basis.requires_grad = False
+        torch.relu_(self.mel_layer.mel_basis)
+        self.mel_layer.mel_basis.requires_grad = True
         
     def forward(self, x):        
         # x [Batch_size,16000]
@@ -66,7 +73,7 @@ class BCResNet_nnAudio(SpeechCommand):
         
         spec = torch.log(spec+1e-10) 
         
-        spec = self.batchnorm_layer(spec)
+#         spec = self.batchnorm_layer(spec)
         
 #         batch_size = torch.ones([spec.shape[0]]).to(spec.device)                
 #         self.norm.to(spec.device)
@@ -126,6 +133,121 @@ class BCResNet_nnAudio(SpeechCommand):
 #ref:https://pytorch.org/docs/1.9.1/generated/torch.nn.CrossEntropyLoss.html
 #old spec :4D [B,1,F,T] , the return spec is for plot log_images, so need 3D
         return out, spec
+
+
+
+class BCResNet_nnAudio_maskout(SpeechCommand_maskout):
+    def __init__(self,cfg_model): 
+        #in main script, will pass no_output_chan, cfg_spec to model
+        super().__init__()
+        self.fastaudio_filter = None
+        self.optimizer_cfg = cfg_model.optimizer
+        self.cfg_model = cfg_model
+        self.conv1 = nn.Conv2d(1, 16, 5, stride=(2, 1), padding=(2, 2))
+        self.block1_1 = TransitionBlock(16, 8)
+        self.block1_2 = BroadcastedBlock(8)
+
+        self.block2_1 = TransitionBlock(8, 12, stride=(2, 1), dilation=(1, 2), temp_pad=(0, 2))
+        self.block2_2 = BroadcastedBlock(12, dilation=(1, 2), temp_pad=(0, 2))
+
+        self.block3_1 = TransitionBlock(12, 16, stride=(2, 1), dilation=(1, 4), temp_pad=(0, 4))
+        self.block3_2 = BroadcastedBlock(16, dilation=(1, 4), temp_pad=(0, 4))
+        self.block3_3 = BroadcastedBlock(16, dilation=(1, 4), temp_pad=(0, 4))
+        self.block3_4 = BroadcastedBlock(16, dilation=(1, 4), temp_pad=(0, 4))
+
+        self.block4_1 = TransitionBlock(16, 20, dilation=(1, 8), temp_pad=(0, 8))
+        self.block4_2 = BroadcastedBlock(20, dilation=(1, 8), temp_pad=(0, 8))
+        self.block4_3 = BroadcastedBlock(20, dilation=(1, 8), temp_pad=(0, 8))
+        self.block4_4 = BroadcastedBlock(20, dilation=(1, 8), temp_pad=(0, 8))
+
+        self.conv2 = nn.Conv2d(20, 20, 5, groups=20, padding=(0, 2))
+        self.conv3 = nn.Conv2d(20, 32, 1, bias=False)
+        self.conv4 = nn.Conv2d(32,  self.cfg_model.args.output_dim, 1, bias=False)
+        
+        self.STFT_layer = STFT(**cfg_model.stft_args)
+        self.mel_layer = MelSpectrogram(**cfg_model.spec_args)
+        self.criterion = nn.CrossEntropyLoss()        
+        #self.mel_layer use in validation step for [mel_filter_banks = self.mel_layer.mel_basis]
+        #self.criterion use in traning & validation step
+          
+        
+    def forward(self, x):        
+        # x [Batch_size,16000]
+#         self.mel_layer.mel_basis = torch.clamp(self.mel_layer.mel_basis, 0, 1)
+        stft = self.STFT_layer(x)
+        
+        stft[:,216:241] = 1 #maskout
+        spec = torch.matmul(self.mel_layer.mel_basis, stft) # [B,F,T]
+        # (B, 40, T)
+        #print(f'{spec.max()=}')
+        #print(f'{spec.min()=}')
+        
+        #spec = torch.relu(spec)
+        
+        spec = torch.log(spec+1e-10) 
+        
+#         spec = self.batchnorm_layer(spec)
+        
+#         batch_size = torch.ones([spec.shape[0]]).to(spec.device)                
+#         self.norm.to(spec.device)
+#         spec = self.norm(spec, batch_size)
+#for normalization
+        
+        spec = spec.unsqueeze(1)
+#x is training_step_batch['waveforms' [B,16000]
+#after self.mel_layer(x) --> 3D [B,F,T]
+#after spec.unsqueeze(1) --> 4D bcoz conv1 need 4D [B,1,F,T]
+
+
+#         print('INPUT SHAPE:', x.shape)
+#         print('INPUT spec SHAPE:', spec.shape)
+        out = self.conv1(spec)
+
+#        print('BLOCK1 INPUT SHAPE:', out.shape)
+        out = self.block1_1(out)
+        out = self.block1_2(out)
+
+#         print('BLOCK2 INPUT SHAPE:', out.shape)
+
+        out = self.block2_1(out)
+        
+#         print('middle BLOCK2 INPUT SHAPE:', out.shape)
+        
+        out = self.block2_2(out)
+
+#         print('BLOCK3 INPUT SHAPE:', out.shape)
+        out = self.block3_1(out)
+        out = self.block3_2(out)
+        out = self.block3_3(out)
+        out = self.block3_4(out)
+
+#         print('BLOCK4 INPUT SHAPE:', out.shape)
+        out = self.block4_1(out)
+        out = self.block4_2(out)
+        out = self.block4_3(out)
+        out = self.block4_4(out)
+
+#         print('Conv2 INPUT SHAPE:', out.shape)
+        out = self.conv2(out)
+
+#         print('Conv3 INPUT SHAPE:', out.shape)
+        out = self.conv3(out)
+        out = out.mean(-1, keepdim=True)
+
+#         print('Conv4 INPUT SHAPE:', out.shape)
+        out = self.conv4(out)   #4D
+        out = out.squeeze(2).squeeze(2)  #2D
+        spec = spec.squeeze(1)
+
+#         print('OUTPUT SHAPE:', out.shape)
+#        OUTPUT SHAPE: torch.Size([8, 35, 1, 1])  out
+
+#crossentropy expect[B, C], so need to squeeze to be 2 dimension
+#ref:https://pytorch.org/docs/1.9.1/generated/torch.nn.CrossEntropyLoss.html
+#old spec :4D [B,1,F,T] , the return spec is for plot log_images, so need 3D
+        return out, spec, stft
+
+
 
 class BCResNet_nnAudio_ASR(ASR):
     def __init__(self,cfg_model,text_transform,lr): 
@@ -364,13 +486,19 @@ class Linearmodel_nnAudio(SpeechCommand):
         self.linearlayer = nn.Linear(self.cfg_model.args.input_dim, self.cfg_model.args.output_dim)
 #linearlayer = nn.Linear(input size[n_mels*T], output size)
 #cfg.model.args.input_dim will be calculated in main script 
-        self.batchnorm_layer = nn.BatchNorm1d(self.cfg_model.spec_args.n_mels)
+#         self.batchnorm_layer = nn.BatchNorm1d(self.cfg_model.spec_args.n_mels)
 #for normalization    
-            
+       
+        nn.init.kaiming_uniform_(self.mel_layer.mel_basis, mode='fan_in')
+        self.mel_layer.mel_basis.requires_grad = False
+        torch.relu_(self.mel_layer.mel_basis)
+        self.mel_layer.mel_basis.requires_grad = True
+    
+    
     def forward(self, x): 
         spec = self.mel_layer(x)  #from 2D [B, 16000] to 3D [B, F40, T101]
         spec = torch.log(spec+1e-10)
-        spec = self.batchnorm_layer(spec)
+#         spec = self.batchnorm_layer(spec)
         #return same shape as input 3D [B, F, T]
         flatten_spec = torch.flatten(spec, start_dim=1) 
         #from 3D [B, F, T] to 2D [B, F*T 40*101] 
@@ -403,7 +531,11 @@ class Linearmodel_nnAudio_ASR(ASR):
 #linearlayer = nn.Linear(input size[n_mels*T], output size)
 #cfg.model.args.input_dim will be calculated in main script 
 #add LSTM layer
-            
+        nn.init.kaiming_uniform_(self.mel_layer.mel_basis, mode='fan_in')
+        self.mel_layer.mel_basis.requires_grad = False
+        torch.relu_(self.mel_layer.mel_basis)
+        self.mel_layer.mel_basis.requires_grad = True
+    
     def forward(self, x): 
         spec = self.mel_layer(x)  #from 2D [B, 16000] to 3D [B, F40, T101]
         spec = torch.log(spec+1e-10)
@@ -422,7 +554,78 @@ class Linearmodel_nnAudio_ASR(ASR):
 #lstmlayer return h as final cell state/long term memory for each element in the batch
     
     
+class Linearmodel_nnAudio_maskout(SpeechCommand_maskout):
+    def __init__(self,cfg_model): 
+        super().__init__()
+        self.fastaudio_filter = None
+        self.STFT_layer = STFT(**cfg_model.stft_args)
+        self.mel_layer = MelSpectrogram(**cfg_model.spec_args)
+        self.optimizer_cfg = cfg_model.optimizer
+                
+        self.criterion = nn.CrossEntropyLoss()
+        self.cfg_model = cfg_model
+        self.linearlayer = nn.Linear(self.cfg_model.args.input_dim, self.cfg_model.args.output_dim)
+#linearlayer = nn.Linear(input size[n_mels*T], output size)
+#cfg.model.args.input_dim will be calculated in main script 
+#         self.batchnorm_layer = nn.BatchNorm1d(self.cfg_model.spec_args.n_mels)
+#for normalization    
+           
     
+    def forward(self, x): 
+        stft = self.STFT_layer(x) #B, 241, T101
+        
+        stft[:,216:241] = 1 #mask out
+        spec = torch.matmul(self.mel_layer.mel_basis, stft)
+#         spec = self.mel_layer(stft)  #from 2D [B, 16000] to 3D [B, F40, T101]
+        spec = torch.log(spec+1e-10)
+#         spec = self.batchnorm_layer(spec)
+        #return same shape as input 3D [B, F, T]
+        flatten_spec = torch.flatten(spec, start_dim=1) 
+        #from 3D [B, F, T] to 2D [B, F*T 40*101] 
+        #start_dim: flattening start from 1st dimention
+        out = self.linearlayer(flatten_spec) #2D [B,number of class] 
+                               
+        return out, spec ,stft              
+
+    
+class Linearmodel_nnAudio_ASR_maskout(ASR_maskout):
+    def __init__(self,cfg_model,text_transform,lr): 
+        super().__init__(text_transform,lr)
+
+        self.fastaudio_filter = None
+        self.optimizer_cfg = cfg_model.optimizer
+        self.STFT_layer = STFT(**cfg_model.stft_args)
+        self.mel_layer = MelSpectrogram(**cfg_model.spec_args)
+        
+        self.criterion = nn.CrossEntropyLoss()
+        self.cfg_model = cfg_model
+        self.linearlayer = nn.Linear(self.cfg_model.args.hidden_dim*2, self.cfg_model.args.output_dim)
+        self.lstmlayer = nn.LSTM(input_size=self.cfg_model.args.input_dim,
+                                 hidden_size=self.cfg_model.args.hidden_dim,
+                                 num_layers=1,
+                                 batch_first=True,
+                                 bidirectional=True)
+        
+#linearlayer = nn.Linear(input size[n_mels*T], output size)
+#cfg.model.args.input_dim will be calculated in main script 
+#add LSTM layer
+            
+    def forward(self, x): 
+        stft = self.STFT_layer(x)  #from 2D [B, 16000] to 3D [B, 241, T]
+
+        stft[:,216:241] = 1 #maskout
+        spec = torch.matmul(self.mel_layer.mel_basis, stft) #from 3D [B, 241, T] to 3D [B, F40, T] 
+  
+        spec = torch.log(spec+1e-10)
+
+        spec = spec.transpose(1,2)
+        #from 3D [B, F40, T] to 3D [B, T, F40] 
+
+        x, h = self.lstmlayer(spec) # x: [B, T, hidden*2] h: [B, hideen*2]
+        out = self.linearlayer(x) #2D [B,T, number of class] 
+
+        
+        return out, spec, stft                             
     
     
     
