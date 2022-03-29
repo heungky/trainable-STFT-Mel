@@ -57,10 +57,11 @@ class SpeechCommand(LightningModule):
      
     def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx,
                        optimizer_closure, on_tpu, using_native_amp, using_lbfgs):
+        
+        optimizer.step(closure=optimizer_closure)
         if self.fastaudio_filter==None:
-            optimizer.step(closure=optimizer_closure)
             with torch.no_grad():
-                torch.clamp_(self.mel_layer.mel_basis, 0, 1)    
+                torch.clamp_(self.mel_layer.mel_basis, 0, 1)
         #after optimizer step, do clamp function on mel_basis
 
     
