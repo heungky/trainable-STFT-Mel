@@ -1,5 +1,4 @@
 batch_size: 100
-# model_type: 'ModelA'
 gpus: 1  #[1] = GPU 1 
 max_epochs: 200
 check_val_every_n_epoch: 2
@@ -9,10 +8,9 @@ data_root: './'
 
 
 defaults:
-    - model: BC_ResNet_Fastaudio 
-
+    - model: BC_ResNet
 #for calling model.BC_ResNetA file
-#python speechcommand_hydra.py model=ModelB
+#python train_KWS_hydra.py model=ModelB
 
 dataset:
     train:

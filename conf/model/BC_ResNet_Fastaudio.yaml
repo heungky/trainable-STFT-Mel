@@ -26,12 +26,12 @@ fastaudio:
     top_db: 80.0
     param_change_factor: 1.0
     param_rand_factor: 0.0
-    freeze: False
+    freeze: True
     sort: False
     
 optimizer:
     warmup: 'constant'
-#warmup: cosine / constant   
+#warmup option: cosine / constant   
 
 args:
     input_dim: 0 #will be calculate in main script, base on n_mel
@@ -43,5 +43,4 @@ args:
 # (e.g., param_change_factor=1) the filters change a lot during training.
 # When low (e.g. param_change_factor=0.1) the filter parameters are more
 # stable during training    
-#nnAudio feature: trainable_mel =  True 
 

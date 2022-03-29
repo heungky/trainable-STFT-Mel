@@ -13,7 +13,7 @@ import pandas as pd
 import sys
 
 
-class ASR(pl.LightningModule):
+class Timit_maskout(pl.LightningModule):
     def __init__(self,
                  text_transform,
                  lr):
@@ -24,7 +24,7 @@ class ASR(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         x = batch['waveforms']
-        out, spec = self(x)
+        out, spec, stft = self(x)
         pred = out
         pred = torch.log_softmax(pred, -1) # CTC loss requires log_softmax
         
@@ -54,7 +54,7 @@ class ASR(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         x = batch['waveforms']
         with torch.no_grad():
-            out, spec  = self(x)
+            out, spec, stft = self(x)
             
             pred = out
             pred = torch.log_softmax(pred, -1) # CTC loss requires log_softmax  
@@ -84,24 +84,8 @@ class ASR(pl.LightningModule):
             self.log_dict(valid_metrics)
         if batch_idx == 0:
             fig, axes = plt.subplots(1,1)
-            
-            if self.fastaudio_filter!=None:
-                fbank_matrix = self.fastaudio_filter.get_fbanks()
-                f_central = self.fastaudio_filter.f_central
-                band = self.fastaudio_filter.band
-                debug_dict = {'fbank_matrix': fbank_matrix,
-                              'f_central': f_central,
-                              'band': band}
                 
-#                 torch.save(debug_dict, f'debug_dict_e{self.current_epoch}.pt')
-                for idx, i in enumerate(fbank_matrix.t().detach().cpu().numpy()):
-                    axes.plot(i)
-                self.logger.experiment.add_figure(
-                    'Validation/fastaudio_MelFilterBanks',
-                    fig,
-                    global_step=self.current_epoch)
-                
-            elif self.fastaudio_filter==None:
+            if self.fastaudio_filter==None:
             
                 mel_filter_banks = self.mel_layer.mel_basis
                 for i in mel_filter_banks:
@@ -114,32 +98,11 @@ class ASR(pl.LightningModule):
                 
 #     these is for plot mel filter band in nnAudio 
 #     fbank_matrix contain all filterbank value
+
+                                
         if batch_idx == 0:
-            if self.fastaudio_filter!=None:
-                fig, axes = plt.subplots(2,2)
-                for ax, kernel_num in zip(axes.flatten(), [2,10,20,50]):
-                    ax.plot(self.mel_layer.wsin[kernel_num,0].cpu())   #STFT() called in Fastaudio model
-                    ax.set_ylim(-1,1)
-                    fig.suptitle('sin')
-
-                self.logger.experiment.add_figure(
-                        'Validation/sin',
-                        fig,
-                        global_step=self.current_epoch)
-
-                fig, axes = plt.subplots(2,2)
-                for ax, kernel_num in zip(axes.flatten(), [2,10,20,50]):
-                    ax.plot(self.mel_layer.wcos[kernel_num,0].cpu())
-                    ax.set_ylim(-1,1)
-                    fig.suptitle('cos')
-
-                self.logger.experiment.add_figure(
-                        'Validation/cos',
-                        fig,
-                        global_step=self.current_epoch)
-               
-            
-            elif self.fastaudio_filter==None:    
+                           
+            if self.fastaudio_filter==None:    
                 fig, axes = plt.subplots(2,2)
                 for ax, kernel_num in zip(axes.flatten(), [2,10,20,50]):
                     ax.plot(self.mel_layer.stft.wsin[kernel_num,0].cpu())  #STFT in included in Melspectrogram()
@@ -161,11 +124,14 @@ class ASR(pl.LightningModule):
                         'Validation/cos',
                         fig,
                         global_step=self.current_epoch)
+            if self.current_epoch==0:
+                stft_xtime = stft.transpose(1,2)
+                self.log_images(stft_xtime, 'Validation/stft')
                 
     def test_step(self, batch, batch_idx):
         x = batch['waveforms']
         with torch.no_grad():
-            out, spec = self(x)
+            out, spec, stft = self(x)
             pred = out
             pred = torch.log_softmax(pred, -1) # CTC loss requires log_softmax
             loss = F.ctc_loss(pred.transpose(0, 1),

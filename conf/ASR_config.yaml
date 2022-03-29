@@ -42,6 +42,6 @@ data_processing:
     #was = ${hop_length}
         
 pl: 
-    lr: 1e-5 
+    lr: 1e-3 
     
 

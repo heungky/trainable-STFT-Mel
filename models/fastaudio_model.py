@@ -15,7 +15,7 @@ from models.custom_model import Filterbank #use for fastaudio model
 from .utils import SubSpectralNorm, BroadcastedBlock, TransitionBlock
 from tasks.speechcommand import SpeechCommand
 from speechbrain.processing.features import InputNormalization
-from tasks.asr import ASR
+from tasks.Timit import Timit
 
 class BCResNet_Fastaudio(SpeechCommand):
     def __init__(self, cfg_model):
@@ -24,8 +24,7 @@ class BCResNet_Fastaudio(SpeechCommand):
         #STFT from nnAudio.features.stft
         #stft output is complex number 
         #'Magnitude' = abosulute value of complex number 
-        
-       
+              
         self.fastaudio_filter = Filterbank(**cfg_model.fastaudio)
         self.optimizer_cfg = cfg_model.optimizer
         self.cfg_model = cfg_model
@@ -52,55 +51,24 @@ class BCResNet_Fastaudio(SpeechCommand):
         self.conv4 = nn.Conv2d(32, self.cfg_model.args.output_dim, 1, bias=False)
         
 
-        self.criterion = nn.CrossEntropyLoss()
-#         self.norm = InputNormalization()
-#         self.norm.to('cuda:0')
-
-        
-#self.mel_layer use in validation step for [mel_filter_banks = self.mel_layer.mel_basis]
-#self.criterion use in traning & validation step
+        self.criterion = nn.CrossEntropyLoss()        
+        #self.mel_layer use in validation step for [mel_filter_banks = self.mel_layer.mel_basis]
+        #self.criterion use in traning & validation step
         
     def forward(self, x):        
-        # x [Batch_size,16000] 2D
-        #self.mel_layer.mel_basis = torch.clamp(self.mel_layer.mel_basis, 0, 1)
-        
-        
-        stft_output =  self.mel_layer(x) #3D [B, F, T]
-#         print(f'{stft_output.max()=}')
-#         print(f'{stft_output.min()=}')
-        
-        
-        output = self.fastaudio_filter(stft_output.transpose(-1,-2))                        
-#         batch_size = torch.ones([output.shape[0]]).to(output.device)                
-#         self.norm.to(output.device)
-#         output = self.norm(output, batch_size)
-
-
-        #for nomalization        
-        
-        #[B,T F], use fastaudio process stft spectrogram
-        #bcoz stft_output [201, 161], [F, T]
+        #x: 2D [Batch_size,16000]      
+        stft_output =  self.mel_layer(x) 
+        #stft_output: 3D [B, F(201), T]
+      
+        output = self.fastaudio_filter(stft_output.transpose(-1,-2))                                 
+        #transpose to [B,T F] to use fastaudio process stft spectrogram
         #size of fbank_matrix is 201x40 [F, n_filters]
-#         torch.save(stft_output, './stft_output.pt')
-#        print(f'{output.max()=}')
-#        print(f'{output.min()=}')
-        
-#         sys.exit()
+
         spec = output.transpose(1,2)
-        
-        
-        #old spec = self.mel_layer(x) 
-        # [B,F,T] (B, 40, T)  3D
-        
-        #spec = torch.relu(spec) #this is for throw out negative mel_filter band value 
-        
-        #spec = torch.log(spec+1e-10)  #3D
-        
-        
-        spec = spec.unsqueeze(1)  #4D
-#x is training_step_batch['waveforms' [B,16000]
-#after self.mel_layer(x) --> 3D [B,F,T]
-#after spec.unsqueeze(1) --> 4D bcoz conv1 need 4D [B,1,F,T]
+        #spec: 3D [B,F(40),T] 
+               
+        spec = spec.unsqueeze(1)
+        #spec: 4D bcoz conv1 need 4D [B,1,F,T]
 
         out = self.conv1(spec)
 
@@ -125,22 +93,23 @@ class BCResNet_Fastaudio(SpeechCommand):
         out = self.conv3(out)
         out = out.mean(-1, keepdim=True)
 
-        out = self.conv4(out)   #4D
-        out = out.squeeze(2).squeeze(2)  #2D
+        out = self.conv4(out)            #4D
+        out = out.squeeze(2).squeeze(2)  
+        #2D for CrossEntropy
         spec = spec.squeeze(1)
+        #spec: 3D [B,F,T]
 
         return out, spec   
 
     
-class BCResNet_Fastaudio_ASR(ASR):
+class BCResNet_Fastaudio_ASR(Timit):
     def __init__(self, cfg_model,text_transform,lr):
         super().__init__(text_transform,lr)        
         self.mel_layer = STFT(**cfg_model.spec_args)   
         #STFT from nnAudio.features.stft
         #stft output is complex number 
         #'Magnitude' = abosulute value of complex number 
-        
-       
+              
         self.fastaudio_filter = Filterbank(**cfg_model.fastaudio)
         self.optimizer_cfg = cfg_model.optimizer
         self.cfg_model = cfg_model
@@ -167,10 +136,9 @@ class BCResNet_Fastaudio_ASR(ASR):
         self.conv4 = nn.Conv2d(32*2, self.cfg_model.args.output_dim, 1, bias=False)
         
 
-        self.criterion = nn.CrossEntropyLoss()
-        
-#self.mel_layer use in validation step for [mel_filter_banks = self.mel_layer.mel_basis]
-#self.criterion use in traning & validation step
+        self.criterion = nn.CrossEntropyLoss()        
+        #self.mel_layer use in validation step for [mel_filter_banks = self.mel_layer.mel_basis]
+        #self.criterion use in traning & validation step
         
         self.lstmlayer = nn.LSTM(input_size=32,
                              hidden_size=32,
@@ -178,30 +146,17 @@ class BCResNet_Fastaudio_ASR(ASR):
                              batch_first=True,
                              bidirectional=True)
     def forward(self, x):        
-        # x [Batch_size,16000] 2D
-        #self.mel_layer.mel_basis = torch.clamp(self.mel_layer.mel_basis, 0, 1)
-        
-        
-        stft_output =  self.mel_layer(x) #3D [B, F, T]       
+        #x: 2D [Batch_size,16000]        
+        stft_output =  self.mel_layer(x) 
+        #stft_output: 3D [B,F,T]       
         output = self.fastaudio_filter(stft_output.transpose(-1,-2))                        
-#         batch_size = torch.ones([output.shape[0]]).to(output.device)                
-#         self.norm.to(output.device)
-#         output = self.norm(output, batch_size)
-
+        #output: 3D [B,T,F]
+        
         spec = output.transpose(1,2)
-        
-        
-        #old spec = self.mel_layer(x) 
-        # [B,F,T] (B, 40, T)  3D
-        
-        #spec = torch.relu(spec) #this is for throw out negative mel_filter band value         
-        #spec = torch.log(spec+1e-10)  #3D
-        
+        #spec: 3D [B,F(40),T]
         
         spec = spec.unsqueeze(1)  #4D
-#x is training_step_batch['waveforms' [B,16000]
-#after self.mel_layer(x) --> 3D [B,F,T]
-#after spec.unsqueeze(1) --> 4D bcoz conv1 need 4D [B,1,F,T]
+        #spec: 4D bcoz conv1 need 4D [B,1,F,T]
 
         out = self.conv1(spec)
 
@@ -225,16 +180,22 @@ class BCResNet_Fastaudio_ASR(ASR):
 
         out = self.conv3(out)
 
-        out = out.squeeze(2)    #3D (B, 32, T) lstmlayer need 3D
-        out = out.transpose(1,2) #(B, T, 32)
+        out = out.squeeze(2)    
+        #out: 3D [B,32,T] bcoz lstmlayer need 3D
+        out = out.transpose(1,2) 
+        #out: 3D [B,T,32]
+        
         out, _ = self.lstmlayer(out) 
-        out = out.transpose(1,2) #(B,32, T)
-        out = out.unsqueeze(2)  #4D for conv4
+        out = out.transpose(1,2) 
+        #out: 3D [B,F,T]
+        out = out.unsqueeze(2)  
+        #out: 4D for conv4 [B,F,1,T]
 
-        out = self.conv4(out)   #4D (B, F, 1, T)
-        out = out.squeeze(2)   #3D (B,F,T)
-        out = out.transpose(1,2) #3D (B, T, F)
+        out = self.conv4(out)    #out: 4D [B,F,1,T]
+        out = out.squeeze(2)     #out: 3D [B,F,T]
+        out = out.transpose(1,2) #out: 3D [B,T,F]
         spec = spec.squeeze(1)
+        #spec: from 4D [B,1,F,T] to 3D [B,F,T]
 
         return out, spec   
     
@@ -251,41 +212,33 @@ class Linearmodel_Fastaudio(SpeechCommand):
         self.cfg_model = cfg_model
         self.linearlayer = nn.Linear(self.cfg_model.args.input_dim, self.cfg_model.args.output_dim)
         
-#         self.norm = InputNormalization()
-        
-#linearlayer = nn.Linear(input size[n_mels*T], output size)
             
     def forward(self, x): 
-        
-#        print(f'x shape= {x.shape}')
-        stft_output =  self.mel_layer(x)  #from 2D [B, 16000] to 3D [B, F241, T101]
-#        print(f'stft_output shape= {stft_output.shape}') #([100, 241, 101])
+        #x: 2D [B, 16000]
+        stft_output =  self.mel_layer(x)  
+        #stft_output: 3D [B, F(241), T(101)]
               
-        output = self.fastaudio_filter(stft_output.transpose(-1,-2)) 
-#        print(f'output shape ={output.shape}')   #[100, 101, 40])    
-        #from [B, F, T] to [B,T, F], use fastaudio process stft spectrogram
-        #bcoz stft_output [201, 161], [F, T]
-        #size of fbank_matrix is 201x40 [F, n_filters]
-        
-#         batch_size = torch.ones([output.shape[0]]).to(output.device)                
-#         self.norm.to(output.device)
-#         output = self.norm(output, batch_size)
-#for normalization
+        output = self.fastaudio_filter(stft_output.transpose(-1,-2))     
+        #from [B,F,T] to [B,T,F], use fastaudio process stft spectrogram
+        #bcoz stft_output [F, T],size of fbank_matrix is [F, n_filters(40)], need transpose to multiply
+        #output: 3D [B,T,F(40])
 
         output = output.transpose(1,2)
+        #output: 3D [B,F,T] for plotting
     
         flatten_spec = torch.flatten( output, start_dim=1) 
-        #from 3D [B, T, F] to 2D [B, T*F] 
+        #flatten_spec: 2D [B, T*F] 
         #start_dim: flattening start from 1st dimention
         
-        out = self.linearlayer(flatten_spec) #2D [B,number of class] 
+        out = self.linearlayer(flatten_spec) 
+        #out: 2D [B,number of class(12)] 
                                 
         return out, output   
     
-##raw waveform 2D [B, 16000] -> mel-layer 3D [B, F241, T101] -> fastaudio filter [B, F40, T101] -> .transpose() [B, T101, F40] -> flatten 2D [B, 101*40] -> linear model instead of convolution [multiply by n_mels*101, output 12 class]
+        #raw waveform 2D [B, 16000] -> mel-layer 3D [B, F241, T101] -> fastaudio filter [B, F40, T101] -> .transpose() [B, T101, F40] -> flatten 2D [B, T*F(101*40)] -> linear model instead of convolution [multiply by n_mels*101, output 12 class]
 
 
-class Linearmodel_Fastaudio_ASR(ASR):
+class Linearmodel_Fastaudio_ASR(Timit):
     def __init__(self,cfg_model,text_transform,lr): 
         super().__init__(text_transform,lr)
         self.mel_layer = STFT(**cfg_model.spec_args)
@@ -296,9 +249,8 @@ class Linearmodel_Fastaudio_ASR(ASR):
         self.cfg_model = cfg_model
         self.linearlayer = nn.Linear(self.cfg_model.args.hidden_dim*2, self.cfg_model.args.output_dim)
         
-#linearlayer = nn.Linear(input size[n_mels*T], output size)
-#cfg.model.args.input_dim will be calculated in main script
-#cfg_model.args.output_dim = 62 possibility
+        #cfg.model.args.input_dim will be calculated in main script
+        #cfg_model.args.output_dim = 62 classes
         self.lstmlayer = nn.LSTM(input_size=self.cfg_model.args.input_dim,
                                  hidden_size=self.cfg_model.args.hidden_dim,
                                  num_layers=1,
@@ -307,18 +259,19 @@ class Linearmodel_Fastaudio_ASR(ASR):
 
             
     def forward(self, x): 
-        
-        stft_output =  self.mel_layer(x)  #from 2D [B, 16000] to 3D [B, F, T]
+        #x: 2D [B, 16000]
+        stft_output =  self.mel_layer(x) 
+        #stft_output: 3D [B, F, T]
               
         output = self.fastaudio_filter(stft_output.transpose(-1,-2))   
-        #from [B, F, T] to [B,T, F], use fastaudio process stft spectrogram
-        #bcoz stft_output [B, F, T]
+        #from [B,F,T] to [B,T, F], use fastaudio process stft spectrogram
         #size of fbank_matrix is 201x40 [F, n_filters]
-        #print(f'output shape ={output.shape}'dd)   #[100, T, F40])  
+        #output: 3D [B(100), T, F40])  
         
         x,h = self.lstmlayer(output)
-        out = self.linearlayer(x) #2D [B,number of class] 
+        out = self.linearlayer(x) 
+        #out: 2D [B,number of class(62)] 
                                 
         return out, output   
-#for ASR task, predict at each time stamp, so no need to flatten.
+        #for ASR task, predict at each time stamp, so no need to flatten.
 

@@ -12,7 +12,7 @@ from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
 
 # custom packages
-from tasks.asr import ASR
+from tasks.Timit import Timit
 import models as Model
 from utils.text_processing import TextTransform, data_processing
 

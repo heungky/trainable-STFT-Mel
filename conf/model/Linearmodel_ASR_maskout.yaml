@@ -27,11 +27,10 @@ spec_args:
     trainable_mel: False
     trainable_STFT: ${model.stft_args.trainable}
     verbose: True
-#nnAudio feature: trainable_mel =  True 
 
 optimizer:
     warmup: 'constant'
-#cosine or constant
+#warmup option: cosine or constant
 
 args:
     input_dim: 0 #will be calculate in main script, base on n_mel
