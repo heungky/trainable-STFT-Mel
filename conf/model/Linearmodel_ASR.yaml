@@ -26,3 +26,5 @@ args:
     output_dim: 12
     hidden_dim: 32
 #hidden_dim for lstmlayer
+
+random_mel: False

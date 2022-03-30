@@ -24,3 +24,5 @@ optimizer:
 args:
     input_dim: 0 #will be calculate in main script, base on n_mel
     output_dim:  #will be calculate in main script  cfg.model.args.output_dim = len(output_dict)
+    
+random_mel: False

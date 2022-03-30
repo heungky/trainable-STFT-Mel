@@ -52,11 +52,12 @@ class BCResNet_nnAudio(SpeechCommand):
         #self.mel_layer use in validation step for [mel_filter_banks = self.mel_layer.mel_basis]
         #self.criterion use in traning & validation step        
         
-        nn.init.kaiming_uniform_(self.mel_layer.mel_basis, mode='fan_in')
-        self.mel_layer.mel_basis.requires_grad = False
-        torch.relu_(self.mel_layer.mel_basis)
-        self.mel_layer.mel_basis.requires_grad = True
-        #for randomly initialize mel bases
+        if self.cfg_model.random_mel == True:
+            nn.init.kaiming_uniform_(self.mel_layer.mel_basis, mode='fan_in')
+            self.mel_layer.mel_basis.requires_grad = False
+            torch.relu_(self.mel_layer.mel_basis)
+            self.mel_layer.mel_basis.requires_grad = True
+            #for randomly initialize mel bases        
         
     def forward(self, x):        
         #x: 2D [Batch_size,16000]
@@ -221,6 +222,13 @@ class BCResNet_nnAudio_ASR(Timit):
                                  batch_first=True,
                                  bidirectional=True)
         
+        if self.cfg_model.random_mel == True:
+            nn.init.kaiming_uniform_(self.mel_layer.mel_basis, mode='fan_in')
+            self.mel_layer.mel_basis.requires_grad = False
+            torch.relu_(self.mel_layer.mel_basis)
+            self.mel_layer.mel_basis.requires_grad = True
+            #for randomly initialize mel bases        
+        
     def forward(self, x):        
         #x: 2D [Batch_size,16000]
         spec = self.mel_layer(x) 
@@ -283,12 +291,12 @@ class Linearmodel_nnAudio(SpeechCommand):
         self.linearlayer = nn.Linear(self.cfg_model.args.input_dim, self.cfg_model.args.output_dim)
         #cfg.model.args.input_dim will be calculated in training script 
    
-       
-        nn.init.kaiming_uniform_(self.mel_layer.mel_basis, mode='fan_in')
-        self.mel_layer.mel_basis.requires_grad = False
-        torch.relu_(self.mel_layer.mel_basis)
-        self.mel_layer.mel_basis.requires_grad = True
-        #for randomly initialize mel bases
+        if self.cfg_model.random_mel == True:
+            nn.init.kaiming_uniform_(self.mel_layer.mel_basis, mode='fan_in')
+            self.mel_layer.mel_basis.requires_grad = False
+            torch.relu_(self.mel_layer.mel_basis)
+            self.mel_layer.mel_basis.requires_grad = True
+            #for randomly initialize mel bases
     
     def forward(self, x): 
         #x: 2D [B, 16000]
@@ -325,11 +333,12 @@ class Linearmodel_nnAudio_ASR(Timit):
         #cfg.model.args.input_dim will be calculated in main script 
         #add LSTM layer for ASR task
         
-        nn.init.kaiming_uniform_(self.mel_layer.mel_basis, mode='fan_in')
-        self.mel_layer.mel_basis.requires_grad = False
-        torch.relu_(self.mel_layer.mel_basis)
-        self.mel_layer.mel_basis.requires_grad = True
-        #for randomly initialize mel bases
+        if self.cfg_model.random_mel == True:
+            nn.init.kaiming_uniform_(self.mel_layer.mel_basis, mode='fan_in')
+            self.mel_layer.mel_basis.requires_grad = False
+            torch.relu_(self.mel_layer.mel_basis)
+            self.mel_layer.mel_basis.requires_grad = True
+            #for randomly initialize mel bases  
     
     def forward(self, x): 
         #x: 2D [B, 16000]
@@ -372,7 +381,7 @@ class Linearmodel_nnAudio_maskout(SpeechCommand_maskout):
         stft = self.STFT_layer(x) 
         #stft: 3D [B, 241, T(101)]
         
-        stft[:,216:241] = 1 #mask out
+        stft[:,216:241] = 0 #mask out
         spec = torch.matmul(self.mel_layer.mel_basis, stft)
         spec = torch.log(spec+1e-10)
 
@@ -410,7 +419,7 @@ class Linearmodel_nnAudio_ASR_maskout(Timit_maskout):
         stft = self.STFT_layer(x)  
         #stft: 3D [B, 241, T]
 
-        stft[:,216:241] = 1 #maskout
+        stft[:,216:241] = 0 #maskout
         spec = torch.matmul(self.mel_layer.mel_basis, stft) 
         #spec: 3D [B, F40, T] 
   

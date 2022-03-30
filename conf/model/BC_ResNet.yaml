@@ -24,3 +24,5 @@ optimizer:
 args:
     input_dim: 0 #will be calculate in training script, base on n_mel
     output_dim: 12
+    
+random_mel: False
