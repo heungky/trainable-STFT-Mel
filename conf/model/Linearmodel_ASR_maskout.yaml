@@ -37,3 +37,7 @@ args:
     output_dim: 12
     hidden_dim: 32
 #hidden_dim for lstmlayer
+
+maskout_start: 25
+maskout_end: 50
+#e.g. masked STFT bins 25-49 mean maskout_start =25 & maskout_end =50

@@ -140,8 +140,8 @@ class BCResNet_nnAudio_maskout(SpeechCommand_maskout):
     def forward(self, x):        
         #x: 2D [Batch_size,16000]
         stft = self.STFT_layer(x)
-        
-        stft[:,216:241] = 1 #maskout
+       
+        stft[:,self.cfg_model.maskout_start:self.cfg_model.maskout_end] = 0 #mask out       
         spec = torch.matmul(self.mel_layer.mel_basis, stft) 
         #spec: 3D [B,F(40),T]
 
@@ -374,14 +374,14 @@ class Linearmodel_nnAudio_maskout(SpeechCommand_maskout):
         self.criterion = nn.CrossEntropyLoss()
         self.cfg_model = cfg_model
         self.linearlayer = nn.Linear(self.cfg_model.args.input_dim, self.cfg_model.args.output_dim)
-        #cfg.model.args.input_dim will be calculated in main script 
-                  
+        #cfg.model.args.input_dim will be calculated in main script            
+        
     def forward(self, x): 
         #x: 2D [B, 16000]
         stft = self.STFT_layer(x) 
         #stft: 3D [B, 241, T(101)]
         
-        stft[:,216:241] = 0 #mask out
+        stft[:,self.cfg_model.maskout_start:self.cfg_model.maskout_end] = 0 #mask out
         spec = torch.matmul(self.mel_layer.mel_basis, stft)
         spec = torch.log(spec+1e-10)
 
@@ -419,7 +419,7 @@ class Linearmodel_nnAudio_ASR_maskout(Timit_maskout):
         stft = self.STFT_layer(x)  
         #stft: 3D [B, 241, T]
 
-        stft[:,216:241] = 0 #maskout
+        stft[:,self.cfg_model.maskout_start:self.cfg_model.maskout_end] = 0 #mask out
         spec = torch.matmul(self.mel_layer.mel_basis, stft) 
         #spec: 3D [B, F40, T] 
   
