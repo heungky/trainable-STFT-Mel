@@ -6,7 +6,7 @@ download: False
 data_root: './YourFolder'
 
 defaults:    
-    - model: BC_ResNet
+    - model: BC_ResNet_ASR
     
 dataset:
     train:
