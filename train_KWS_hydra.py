@@ -25,7 +25,7 @@ from dataloading_util import data_processing
 from datetime import datetime
 
 
-@hydra.main(config_path="conf", config_name="speechcommand_config")
+@hydra.main(config_path="conf", config_name="KWS_config")
 def cnn(cfg : DictConfig) -> None:
 
     cfg.data_root = to_absolute_path(cfg.data_root)
