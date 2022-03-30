@@ -1,5 +1,4 @@
 # Useful github libries
-
 from AudioLoader.Speech import TIMIT
 
 # Libraries related to PyTorch
@@ -83,23 +82,18 @@ def main(cfg):
                                                                   text_transform,
                                                                   **cfg.data_processing))      
 
-     #for dataloader, trainset need shuffle
-    if cfg.model.model_type=='X_vector':
-        model = ASR(getattr(Model, cfg.model.model_type)(**cfg.model.args, cfg_model=cfg.model),text_transform,**cfg.pl)        
-    else:
-        print(f'cfg.model ={cfg.model.keys()} ')
-        model=getattr(Model, cfg.model.model_type)(cfg.model,text_transform,cfg.pl.lr)
 
-#     model = ASR(getattr(Model, cfg.model.type)(spec_layer, **cfg.model.args),
-#                 text_transform,
-#                 **cfg.pl)
+    model=getattr(Model, cfg.model.model_type)(cfg.model,text_transform,cfg.pl.lr)
     
     
     checkpoint_callback = ModelCheckpoint(monitor="valid_ctc_loss",
                                           filename="{epoch:02d}-{valid_ctc_loss:.2f}-{PER:.2f}",
                                           save_top_k=3,
                                           mode="min")
+    
     name = f'n_mels={n_mel}-{cfg.model.model_type}-mel={train_setting}-STFT={stft}--TIMIT'
+    #file name shown in tensorboard logger
+    
     lr_monitor = LearningRateMonitor(logging_interval='step')
     logger = TensorBoardLogger(save_dir=".", version=1, name=name)
     trainer = pl.Trainer(gpus=cfg.gpus,
@@ -110,8 +104,8 @@ def main(cfg):
 
 
     trainer.fit(model, train_loader, valid_loader)
-#     trainer.test(model, test_loader)
-    trainer.test(model, test_loader, ckpt_path="best")    
+    trainer.test(model, test_loader, ckpt_path="best")   
+    # take the best PER in testset
     
 if __name__ == "__main__":
     main()    
