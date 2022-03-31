@@ -120,6 +120,6 @@ python train_KWS_hydra.py gpus=<arg> model=<arg> model.random_mel=True
 
 Applicable model: 
 * KWS nnAudio BC_ResNet
-* KWS nnAudio BC_ResNet
+* ASR nnAudio BC_ResNet
 * KWS nnAudio Simple
 * ASR nnAudio Simple
