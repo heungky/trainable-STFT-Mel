@@ -64,7 +64,7 @@ python train_KWS_hydra.py
 ```bash
 python train_ASR_hydra.py 
 ```
-Note: if this is your 1st time to train the model, dataset will be downloaded 
+Note: if this is your 1st time to train the model, change the `download` setting in `KWS_config.yaml` / `ASR_config.yaml` to `True`
 
 Default:
 * nnAudio BC_ResNet model: `model=BC_ResNet`
@@ -123,3 +123,5 @@ Applicable model:
 * ASR nnAudio BC_ResNet
 * KWS nnAudio Simple
 * ASR nnAudio Simple
+
+Note: simply replace `train_KWS_hydra.py` with `train_ASR_hydra.py` for ASR task.
