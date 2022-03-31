@@ -17,7 +17,7 @@ dataset:
         root: ${data_root}
         url: 'speech_commands_v0.02'
         folder_in_archive: 'SpeechCommands'
-        download: True
+        download: False
         subset: 'training'        
     val:
         root: ${data_root}
@@ -29,7 +29,7 @@ dataset:
         root: ${data_root}
         url: 'speech_commands_v0.02'
         folder_in_archive: 'SpeechCommands'
-        download: True
+        download: False
         subset: 'testing'  
 
 
