@@ -17,3 +17,4 @@ pybind11
 fastwer
 git+https://github.com/KinWaiCheuk/AudioLoader.git
 tabulate
+tensorflow
