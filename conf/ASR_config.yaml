@@ -3,7 +3,7 @@ batch_size: 100
 epochs: 400
 output_mode: 'ph'
 download: False
-data_root: './YourFolder'
+data_root: './'
 
 defaults:    
     - model: BC_ResNet_ASR

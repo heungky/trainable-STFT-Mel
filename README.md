@@ -52,6 +52,12 @@ trainable-STFT-Mel
 * `phonemics_dict` is the phoneme labels provided in TIMIT which used for phoneme recognition.
 
 # Requirement
+
+Python `3.8.10` and `pybind11` are required to run this repo. You can install `pybind11` via
+```basH
+pip install pybind11
+```
+
 You can install all required libraries at once via 
 ```bash
 pip install -r requirements.txt
@@ -64,7 +70,14 @@ python train_KWS_hydra.py
 ```bash
 python train_ASR_hydra.py 
 ```
-Note: if this is your 1st time to train the model, change the `download` setting in `KWS_config.yaml` / `ASR_config.yaml` to `True`
+Note: if this is your 1st time to train the model, you need to set `download` setting in `KWS_config.yaml` / `ASR_config.yaml` to `True` via
+```bash
+python train_KWS_hydra.py download=True
+```
+```bash
+python train_ASR_hydra.py download=True
+```
+
 
 Default:
 * nnAudio BC_ResNet model: `model=BC_ResNet`
