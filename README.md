@@ -53,10 +53,7 @@ trainable-STFT-Mel
 
 # Requirement
 
-Python `3.8.10` and `pybind11` are required to run this repo. You can install `pybind11` via
-```basH
-pip install pybind11
-```
+Python `3.8.10` is required to run this repo. 
 
 You can install all required libraries at once via 
 ```bash
@@ -70,20 +67,23 @@ python train_KWS_hydra.py
 ```bash
 python train_ASR_hydra.py 
 ```
-Note: if this is your 1st time to train the model, you need to set `download` setting in `KWS_config.yaml` / `ASR_config.yaml` to `True` via
+Note: 
+* If this is your 1st time to train the model, you need to set `download` setting to `True` via
 ```bash
 python train_KWS_hydra.py download=True
 ```
-```bash
-python train_ASR_hydra.py download=True
-```
 
+* If you use CPU instead of GPU to train the model, set gpus to 0 via 
+```bash
+python train_KWS_hydra.py gpus=0
+```
 
 Default:
 * nnAudio BC_ResNet model: `model=BC_ResNet`
 * setting A (Both gMel and gSTFT are non-trainable):
 `model.spec_args.trainable_mel=False` `model.spec_args.trainable_STFT=False`
 * 40 number of Mel bases: `model.spec_args.n_mels=40`
+* use 1 gpus
 
 ## Multiple training with KWS/ASR task under four different settings
 
