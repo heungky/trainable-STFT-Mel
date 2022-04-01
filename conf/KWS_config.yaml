@@ -4,7 +4,7 @@ max_epochs: 200
 check_val_every_n_epoch: 2
 num_sanity_val_steps: 5
 data_root: './'
-
+download: False
 
 
 defaults:
@@ -17,7 +17,7 @@ dataset:
         root: ${data_root}
         url: 'speech_commands_v0.02'
         folder_in_archive: 'SpeechCommands'
-        download: False
+        download: ${download} 
         subset: 'training'        
     val:
         root: ${data_root}
