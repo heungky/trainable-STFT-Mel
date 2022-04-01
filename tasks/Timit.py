@@ -44,11 +44,14 @@ class Timit(pl.LightningModule):
         return loss
   
     def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx,
-                   optimizer_closure, on_tpu, using_native_amp, using_lbfgs):
+                       optimizer_closure, on_tpu, using_native_amp, using_lbfgs):
+        
+        optimizer.step(closure=optimizer_closure)
         if self.fastaudio_filter==None:
-            optimizer.step(closure=optimizer_closure)
             with torch.no_grad():
-                torch.clamp_(self.mel_layer.mel_basis, 0, 1)    
+                torch.clamp_(self.mel_layer.mel_basis, 0, 1)
+        #after optimizer step, do clamp function on mel_basis (only applicable for nnAudio)
+        #FastAudio internal has clamp function
     
     def validation_step(self, batch, batch_idx):
         x = batch['waveforms']
