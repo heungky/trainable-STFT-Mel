@@ -12,7 +12,7 @@ spec_args:
     output_format: 'Magnitude'
     
 fastaudio:
-    n_mels: 10
+    n_mels: 40
     log_mel: True
     filter_shape: 'triangular'
     f_min: 0
