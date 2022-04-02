@@ -96,8 +96,17 @@ python train_KWS_hydra.py -m gpus=<arg> model=<arg> model.spec_args.trainable_me
 ```bash
 python train_KWS_hydra.py -m gpus=<arg> model=<arg> model.fastaudio.freeze=True,False model.spec_args.trainable=True,False
 ```
+`model.fastaudio.freeze` controls Mel basis functions: 
+* `model.fastaudio.freeze=True` represent mel non-trainable
+* `model.fastaudio.freeze=False` represent mel trainable
 
-Note: simply replace `train_KWS_hydra.py` with `train_ASR_hydra.py` for ASR task.
+`model.spec_args.trainable` controls STFT:
+* `model.spec_args.trainable=True` represent STFT trainable
+* `model.spec_args.trainable=False` represent STFT non-trainable
+
+Note: 
+* simply replace `train_KWS_hydra.py` with `train_ASR_hydra.py` for ASR task.
+
 
 ## Multiple training with KWS/ASR task under different number of Mel bases
 
