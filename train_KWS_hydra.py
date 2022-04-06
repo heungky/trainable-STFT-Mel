@@ -18,8 +18,10 @@ from hydra.utils import to_absolute_path
 from omegaconf import DictConfig, OmegaConf
 
 # custom packages
-from dataset.speechcommands import SPEECHCOMMANDS_12C #for 12 classes KWS task
 import models as Model 
+
+#Libraried related to dataset
+from AudioLoader.Speech import SPEECHCOMMANDS_12C #for 12 classes KWS task
 
 from dataloading_util import data_processing
 from datetime import datetime
