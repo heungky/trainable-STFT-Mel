@@ -1,0 +1,14 @@
+numpy
+matplotlib==3.5.1 
+tqdm==4.62.3
+nnAudio==0.3.1
+hydra-core==1.1.1
+pytorch-lightning==1.5.8
+scikit-learn==1.0.2
+# install pytorch packages
+# these packages are located in a very specific url
+--find-links https://download.pytorch.org/whl/torch_stable.html
+torch==1.10.2+cu113
+torchaudio==0.10.2+cu113
+git+https://github.com/KinWaiCheuk/AudioLoader.git
+tensorflow
